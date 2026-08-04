@@ -17,7 +17,7 @@ resource "aws_sns_topic" "purchase_order" {
   name = each.value
 
   tags = {
-    Project      = "FIAP-14SOAT-TC-FASE4"
+    Project      = "fiap-14soat-tc-fase5"
     MicroService = "purchase-order"
     Type         = "sns-topic"
   }

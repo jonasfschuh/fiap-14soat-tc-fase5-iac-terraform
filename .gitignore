@@ -37,6 +37,6 @@ override.tf.json
 terraform.rc
 .idea/
 .idea/aws.xml
-.idea/fiap-14soat-tc-fase4-iac-terraform.iml
+.idea/fiap-14soat-tc-fase5-iac-terraform.iml
 /terraform.iml
 /infra/tfplan

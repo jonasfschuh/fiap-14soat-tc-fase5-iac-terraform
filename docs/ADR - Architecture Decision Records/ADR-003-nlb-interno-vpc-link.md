@@ -4,10 +4,10 @@
 |--------------|-------------------------------------------------------------------------|
 | **ADR**      | 003                                                                     |
 | **Título**   | NLB interno + VPC Link como único caminho de entrada para o cluster EKS |
-| **Repositório** | fiap-14soat-tc-fase4-iac-terraform                                     |
+| **Repositório** | fiap-14soat-tc-fase5-iac-terraform                                     |
 | **Status**   | Aceito                                                                  |
-| **Data**     | 2026-04-20 (criado) · 2026-07-17 (revisado para Fase 4)                 |
-| **Decisores**| Time FIAP 14SOAT Fase 4 — RaceForce                                     |
+| **Data**     | 2026-04-20 (criado) · 2026-07-17 (revisado para Fase 5)                 |
+| **Decisores**| Time FIAP 14SOAT Fase 5 — RaceForce                                     |
 
 ---
 

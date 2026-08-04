@@ -4,9 +4,9 @@
 |--------------|---------------------------------------------------------|
 | **RFC**      | 003                                                     |
 | **Título**   | Provisionamento do Cluster EKS, VPC e NLB com Terraform |
-| **Repositório** | fiap-14soat-tc-fase4-iac-terraform                      |
+| **Repositório** | fiap-14soat-tc-fase5-iac-terraform                      |
 | **Status**   | Aceito                                                  |
-| **Autor**    | Time FIAP 14SOAT Fase 4                                |
+| **Autor**    | Time FIAP 14SOAT Fase 5                                |
 | **Data**     | 2026-04-20 (criado) · 2026-07-17 (revisado — SQS, RDS, SNS adicionados) |
 
 ---
@@ -100,7 +100,7 @@ O chart `nri-bundle` é instalado via `helm_release` no próprio pipeline Terraf
 
 ```hcl
 backend "s3" {
-  bucket = "fiap-14soat-fase4-jonasfschuh"
+  bucket = "fiap-14soat-fase5-jonasfschuh"
   key    = "infra/terraform.tfstate"
   region = "us-east-1"
 }

@@ -4,7 +4,7 @@
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="title" parent="1" style="text;html=1;align=center;fontSize=15;fontStyle=1;strokeColor=none;fillColor=none;" value="Repositorio: fiap-14soat-tc-fase4-iac-terraform — O que provisiona na AWS" vertex="1">
+        <mxCell id="title" parent="1" style="text;html=1;align=center;fontSize=15;fontStyle=1;strokeColor=none;fillColor=none;" value="Repositorio: fiap-14soat-tc-fase5-iac-terraform — O que provisiona na AWS" vertex="1">
           <mxGeometry height="28" width="1100" x="50" y="10" as="geometry" />
         </mxCell>
         <mxCell id="z_cicd" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#333333;strokeWidth=2;fontSize=11;fontStyle=1;verticalAlign=top;spacingTop=4;" value="GitHub Actions — iac-terraform" vertex="1">
@@ -58,7 +58,7 @@
         <mxCell id="c_sg_lbl" parent="1" style="text;html=1;align=center;fontSize=9;" value="Security Group&lt;br/&gt;NodePort + API" vertex="1">
           <mxGeometry height="18" width="110" x="948" y="302" as="geometry" />
         </mxCell>
-        <mxCell id="z_eks" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;strokeWidth=2;fontSize=11;fontStyle=1;verticalAlign=top;spacingTop=4;" value="Amazon EKS Cluster — eks-cluster-fiap-14soat-fase4-raceforce  (k8s 1.33)" vertex="1">
+        <mxCell id="z_eks" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;strokeWidth=2;fontSize=11;fontStyle=1;verticalAlign=top;spacingTop=4;" value="Amazon EKS Cluster — eks-cluster-fiap-14soat-fase5-raceforce  (k8s 1.33)" vertex="1">
           <mxGeometry height="310" width="860" x="270" y="340" as="geometry" />
         </mxCell>
         <mxCell id="c_eks_icon" parent="1" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.eks;labelBackgroundColor=none;sketch=0;fillColor=#C7131F;strokeColor=#ffffff;" value="" vertex="1">

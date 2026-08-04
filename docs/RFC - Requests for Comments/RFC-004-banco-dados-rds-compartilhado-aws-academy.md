@@ -4,9 +4,9 @@
 |-----------------|-----------------------------------------------------------------------------|
 | **RFC**         | 004                                                                         |
 | **Título**      | Consolidação de instâncias RDS PostgreSQL por restrições do AWS Academy     |
-| **Repositório** | fiap-14soat-tc-fase4-iac-terraform                                          |
-| **Status**      | Aceito — vigente na Fase 4                                                  |
-| **Autor**       | Time FIAP 14SOAT Fase 4 — RaceForce                                         |
+| **Repositório** | fiap-14soat-tc-fase5-iac-terraform                                          |
+| **Status**      | Aceito — vigente na Fase 5                                                  |
+| **Autor**       | Time FIAP 14SOAT Fase 5 — RaceForce                                         |
 | **Data**        | 2026-07-20                                                                  |
 | **ADR relacionado** | ADR-004 — Instância RDS PostgreSQL Compartilhada entre Microserviços    |
 
@@ -60,10 +60,10 @@ O ambiente AWS Academy impõe limitações que tornam o cenário ideal inviável
 
 ### 3.1 Solução adotada: instância RDS compartilhada com bancos logicamente isolados
 
-Provisionar **uma única instância `db.t3.micro` RDS PostgreSQL 16** no repositório de infraestrutura central (`fiap-14soat-tc-fase4-iac-terraform`). Cada microserviço cria seu próprio **DATABASE** (banco lógico independente) dentro da mesma instância, com usuário e senha exclusivos.
+Provisionar **uma única instância `db.t3.micro` RDS PostgreSQL 16** no repositório de infraestrutura central (`fiap-14soat-tc-fase5-iac-terraform`). Cada microserviço cria seu próprio **DATABASE** (banco lógico independente) dentro da mesma instância, com usuário e senha exclusivos.
 
 ```
-Instância RDS: rds-fiap-14soat-fase4-raceforce (db.t3.micro, ~$12,41/mês)
+Instância RDS: rds-fiap-14soat-fase5-raceforce (db.t3.micro, ~$12,41/mês)
   ├── DATABASE: customer_db      → usuário: customer      (acesso exclusivo)
   ├── DATABASE: vehicle_db       → usuário: vehicle       (acesso exclusivo)
   ├── DATABASE: service_db       → usuário: service       (acesso exclusivo)
@@ -76,7 +76,7 @@ Instância RDS: rds-fiap-14soat-fase4-raceforce (db.t3.micro, ~$12,41/mês)
 
 ### 3.2 Gerenciamento via Terraform Remote State
 
-O endpoint RDS é publicado como output no Terraform state remoto (bucket S3 `fiap-14soat-fase4-jonasfschuh`, key `infra/terraform.tfstate`) e consumido por cada pipeline de microserviço via `data.terraform_remote_state.infra.outputs.rds_endpoint`.
+O endpoint RDS é publicado como output no Terraform state remoto (bucket S3 `fiap-14soat-fase5-jonasfschuh`, key `infra/terraform.tfstate`) e consumido por cada pipeline de microserviço via `data.terraform_remote_state.infra.outputs.rds_endpoint`.
 
 ```hcl
 # Saída publicada pelo iac-terraform

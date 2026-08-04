@@ -27,7 +27,7 @@ resource "aws_sqs_queue" "saga_dlq" {
   message_retention_seconds = 604800 # 7 days — for manual inspection and re-processing
 
   tags = {
-    Project      = "FIAP-14SOAT-TC-FASE4"
+    Project      = "fiap-14soat-tc-fase5"
     MicroService = "saga-orchestration"
     Type         = "dlq"
   }
@@ -48,7 +48,7 @@ resource "aws_sqs_queue" "saga" {
   })
 
   tags = {
-    Project      = "FIAP-14SOAT-TC-FASE4"
+    Project      = "fiap-14soat-tc-fase5"
     MicroService = "saga-orchestration"
     Type         = "main"
   }
@@ -63,7 +63,7 @@ resource "aws_sqs_queue" "domain_event_dlq" {
   message_retention_seconds = 604800
 
   tags = {
-    Project      = "FIAP-14SOAT-TC-FASE4"
+    Project      = "fiap-14soat-tc-fase5"
     MicroService = "domain-events"
     Type         = "dlq"
   }
@@ -84,7 +84,7 @@ resource "aws_sqs_queue" "domain_event" {
   })
 
   tags = {
-    Project      = "FIAP-14SOAT-TC-FASE4"
+    Project      = "fiap-14soat-tc-fase5"
     MicroService = "domain-events"
     Type         = "main"
   }

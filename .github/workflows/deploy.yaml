@@ -35,7 +35,7 @@ jobs:
 
       - name: Resolver configuracao de backend
         run: |
-          echo "TF_STATE_BUCKET_EFFECTIVE=${{ vars.TF_STATE_BUCKET || secrets.TF_STATE_BUCKET || 'fiap-14soat-fase4-jonasfschuh' }}" >> "$GITHUB_ENV"
+          echo "TF_STATE_BUCKET_EFFECTIVE=${{ vars.TF_STATE_BUCKET || secrets.TF_STATE_BUCKET || 'fiap-14soat-fase5-jonasfschuh' }}" >> "$GITHUB_ENV"
           echo "TF_STATE_KEY_EFFECTIVE=${{ vars.TF_STATE_KEY || secrets.TF_STATE_KEY || 'infra/terraform.tfstate' }}" >> "$GITHUB_ENV"
 
       - name: Garantir bucket de state
@@ -66,9 +66,9 @@ jobs:
         working-directory: ./infra
         env:
           TF_VAR_aws_region: ${{ env.AWS_REGION }}
-          TF_VAR_project_identifier: ${{ vars.TF_VAR_PROJECT_IDENTIFIER || 'fiap-14soat-fase4-raceforce' }}
-          TF_VAR_bucket_name: ${{ vars.TF_VAR_BUCKET_NAME || secrets.TF_VAR_BUCKET_NAME || 'fiap-14soat-fase4-jonasfschuh' }}
-          TF_VAR_eks_cluster_name: ${{ vars.TF_VAR_EKS_CLUSTER_NAME || secrets.TF_VAR_EKS_CLUSTER_NAME || 'eks-cluster-fiap-14soat-fase4-raceforce' }}
+          TF_VAR_project_identifier: ${{ vars.TF_VAR_PROJECT_IDENTIFIER || 'fiap-14soat-fase5-raceforce' }}
+          TF_VAR_bucket_name: ${{ vars.TF_VAR_BUCKET_NAME || secrets.TF_VAR_BUCKET_NAME || 'fiap-14soat-fase5-jonasfschuh' }}
+          TF_VAR_eks_cluster_name: ${{ vars.TF_VAR_EKS_CLUSTER_NAME || secrets.TF_VAR_EKS_CLUSTER_NAME || 'eks-cluster-fiap-14soat-fase5-raceforce' }}
           TF_VAR_eks_cluster_role_name: ${{ vars.TF_VAR_EKS_CLUSTER_ROLE_NAME || secrets.TF_VAR_EKS_CLUSTER_ROLE_NAME || 'LabRole' }}
           TF_VAR_eks_node_role_name: ${{ vars.TF_VAR_EKS_NODE_ROLE_NAME || secrets.TF_VAR_EKS_NODE_ROLE_NAME || 'LabRole' }}
           TF_VAR_eks_node_instance_types: ${{ vars.TF_VAR_EKS_NODE_INSTANCE_TYPES || '["t3.medium"]' }}
@@ -95,7 +95,7 @@ jobs:
         if: failure()
         continue-on-error: true
         env:
-          EKS_CLUSTER_NAME: ${{ vars.TF_VAR_EKS_CLUSTER_NAME || secrets.TF_VAR_EKS_CLUSTER_NAME || 'eks-cluster-fiap-14soat-fase4-raceforce' }}
+          EKS_CLUSTER_NAME: ${{ vars.TF_VAR_EKS_CLUSTER_NAME || secrets.TF_VAR_EKS_CLUSTER_NAME || 'eks-cluster-fiap-14soat-fase5-raceforce' }}
           NEW_RELIC_NAMESPACE: ${{ vars.NEW_RELIC_NAMESPACE || 'newrelic' }}
         run: |
           if ! aws eks describe-cluster --region "${{ env.AWS_REGION }}" --name "${EKS_CLUSTER_NAME}" >/dev/null 2>&1; then
@@ -139,7 +139,7 @@ jobs:
         if: always()
         continue-on-error: true
         env:
-          EKS_CLUSTER_NAME: ${{ vars.TF_VAR_EKS_CLUSTER_NAME || secrets.TF_VAR_EKS_CLUSTER_NAME || 'eks-cluster-fiap-14soat-fase4-raceforce' }}
+          EKS_CLUSTER_NAME: ${{ vars.TF_VAR_EKS_CLUSTER_NAME || secrets.TF_VAR_EKS_CLUSTER_NAME || 'eks-cluster-fiap-14soat-fase5-raceforce' }}
           ENABLE_NEW_RELIC: ${{ vars.TF_VAR_ENABLE_NEW_RELIC || 'false' }}
           NEW_RELIC_NAMESPACE: ${{ vars.NEW_RELIC_NAMESPACE || 'newrelic' }}
         run: |

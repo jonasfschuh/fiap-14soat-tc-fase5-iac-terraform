@@ -5,7 +5,7 @@ variable "bucket_name" {
 }
 
 variable "eks_cluster_name" {
-  description = "Nome do cluster EKS. Exemplo: eks-cluster-fiap-14soat-fase4-raceforce"
+  description = "Nome do cluster EKS. Exemplo: eks-cluster-fiap-14soat-fase5-raceforce"
   type        = string
 }
 
@@ -25,13 +25,13 @@ variable "environment" {
 variable "project_name" {
   description = "Nome do projeto para ser usado em tags."
   type        = string
-  default     = "FIAP 14SOAT Fase 4 - RACEFORCE"
+  default     = "FIAP 14SOAT Fase 5 - RACEFORCE"
 }
 
 variable "project_identifier" {
   description = "Identificador único do projeto para ser usado em tags."
   type        = string
-  default     = "fiap-14soat-fase4-raceforce"
+  default     = "fiap-14soat-fase5-raceforce"
 }
 
 variable "eks_cluster_role_name" {
@@ -80,7 +80,7 @@ variable "eks_node_scaling_max_size" {
 variable "lambda_terraform_state_bucket" {
   description = "Nome do bucket S3 onde está o tfstate da Lambda"
   type        = string
-  default     = "fiap-14soat-fase4-jonasfschuh"
+  default     = "fiap-14soat-fase5-jonasfschuh"
 }
 
 variable "lambda_terraform_state_key" {

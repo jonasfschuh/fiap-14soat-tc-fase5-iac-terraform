@@ -4,17 +4,17 @@
 |-----------------|--------------------------------------------------------------------------------|
 | **ADR**         | 004                                                                            |
 | **Título**      | Consolidação dos bancos PostgreSQL em uma única instância RDS compartilhada    |
-| **Repositório** | fiap-14soat-tc-fase4-iac-terraform                                             |
+| **Repositório** | fiap-14soat-tc-fase5-iac-terraform                                             |
 | **Status**      | Aceito — decisão acadêmica, não recomendada para produção                      |
 | **Data**        | 2026-07-20                                                                     |
-| **Decisores**   | Time FIAP 14SOAT Fase 4 — RaceForce                                            |
+| **Decisores**   | Time FIAP 14SOAT Fase 5 — RaceForce                                            |
 | **Referência**  | RFC-004 — Estratégia de Banco de Dados Compartilhado (AWS Academy)             |
 
 ---
 
 ## Contexto
 
-A arquitetura de microserviços da plataforma RaceForce (Fase 4) prevê o padrão **Database-per-Service**: cada microserviço deve possuir seu banco de dados exclusivo, sem acesso direto aos dados dos demais. Para os 6 microserviços que utilizam PostgreSQL (`ms-customer`, `ms-vehicle`, `ms-service`, `ms-stocks`, `ms-purchase-order`, `ms-billing`), o cenário ideal seria provisionar **6 instâncias RDS separadas**.
+A arquitetura de microserviços da plataforma RaceForce (Fase 5) prevê o padrão **Database-per-Service**: cada microserviço deve possuir seu banco de dados exclusivo, sem acesso direto aos dados dos demais. Para os 6 microserviços que utilizam PostgreSQL (`ms-customer`, `ms-vehicle`, `ms-service`, `ms-stocks`, `ms-purchase-order`, `ms-billing`), o cenário ideal seria provisionar **6 instâncias RDS separadas**.
 
 O ambiente de desenvolvimento e validação acadêmica é o **AWS Academy**, que impõe restrições severas:
 
@@ -28,7 +28,7 @@ A equipe precisou escolher entre manter a pureza arquitetural (6 instâncias RDS
 
 ## Decisão
 
-**Provisionar uma única instância `db.t3.micro` RDS PostgreSQL 16**, centralizada no repositório `fiap-14soat-tc-fase4-iac-terraform`, na qual cada microserviço possui seu próprio **DATABASE isolado** (não schema, mas banco lógico separado), com usuário e senha exclusivos por serviço.
+**Provisionar uma única instância `db.t3.micro` RDS PostgreSQL 16**, centralizada no repositório `fiap-14soat-tc-fase5-iac-terraform`, na qual cada microserviço possui seu próprio **DATABASE isolado** (não schema, mas banco lógico separado), com usuário e senha exclusivos por serviço.
 
 | Microserviço        | DATABASE criado          | Usuário       |
 |---------------------|--------------------------|---------------|
@@ -122,7 +122,7 @@ A instância RDS é gerenciada pelo repositório de infraestrutura central porqu
 ```hcl
 # infra/rds.tf — instância compartilhada provisionada pelo iac-terraform
 resource "aws_db_instance" "postgres_shared" {
-  identifier        = "rds-fiap-14soat-fase4-raceforce"
+  identifier        = "rds-fiap-14soat-fase5-raceforce"
   engine            = "postgres"
   engine_version    = "16"
   instance_class    = "db.t3.micro"
