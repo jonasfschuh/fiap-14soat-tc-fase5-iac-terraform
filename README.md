@@ -242,7 +242,7 @@ Os workflows de deploy desta stack utilizam `workflow_dispatch` (disparo manual)
 - [AWS CLI](https://aws.amazon.com/cli/) configurado (`aws configure`)
 - [kubectl](https://kubernetes.io/docs/tasks/tools/)
 - [Helm](https://helm.sh/docs/intro/install/) >= 3
-- Bucket S3 `fiap-14soat-fase5-jonasfschuh` criado na regi�o `us-east-1` (bootstrap idempotente feito pelos workflows de CI/CD)
+- Bucket S3 `fiap-14soat-fase5-jonasfschuh` criado na regiao `us-east-1` (bootstrap idempotente feito pelos workflows de CI/CD)
 
 ### 1. Inicializar o Terraform
 
