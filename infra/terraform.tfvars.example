@@ -1,0 +1,32 @@
+# Variáveis Obrigatórias
+bucket_name = "coloque-seu-bucket-aqui"
+eks_cluster_name = "eks-cluster-fiap-14soat-fase4"
+
+# Variáveis para IAM/EKS no AWS Academy
+eks_cluster_role_name = "LabRole"
+eks_node_role_name    = "LabRole"
+
+# Variáveis para API Gateway e Lambda
+lambda_terraform_state_bucket = "fiap-14soat-terraform-state"
+lambda_terraform_state_key    = "lambda-auth/terraform.tfstate"
+jwt_issuer                    = "RaceforceApi"
+jwt_audience                  = "AuthorizedServices"
+
+# Variáveis Opcionais
+# aws_region         = "us-east-1"
+# eks_supported_control_plane_azs = ["us-east-1a", "us-east-1b", "us-east-1c", "us-east-1d", "us-east-1f"]
+# environment        = "Dev"
+# project_name       = "FIAP 14SOAT Fase 3"
+# project_identifier = "fiap-14soat-fase4"
+# eks_node_instance_types       = ["t3.medium"]
+# eks_node_disk_size            = 20
+# eks_node_scaling_desired_size = 2
+# eks_node_scaling_max_size     = 2
+# eks_node_scaling_min_size     = 1
+
+# Observabilidade New Relic (opcional)
+# enable_new_relic                = true
+# new_relic_license_key           = "<via TF_VAR_new_relic_license_key / GitHub Secret NEW_RELIC_KEY>"
+# new_relic_namespace             = "newrelic"
+# new_relic_cluster_name_override = ""
+# new_relic_helm_timeout_seconds  = 900

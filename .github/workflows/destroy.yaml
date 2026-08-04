@@ -1,0 +1,98 @@
+name: Destruir Infraestrutura AWS
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Digite "destroy" para confirmar a destruicao de todos os recursos'
+        required: true
+
+env:
+  AWS_REGION: us-east-1
+  TF_IN_AUTOMATION: true
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  destroy:
+    name: Destruir Infrastructure
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Validar confirmacao
+        run: |
+          if [ "${{ github.event.inputs.confirm }}" != "destroy" ]; then
+            echo "Confirmacao falhou. Voce deve digitar 'destroy' para prosseguir."
+            exit 1
+          fi
+
+      - name: Checkout do codigo
+        uses: actions/checkout@v4
+
+      - name: Configurar credenciais AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Configurar Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.10.0
+
+      - name: Resolver configuracao de backend
+        run: |
+          echo "TF_STATE_BUCKET_EFFECTIVE=${{ vars.TF_STATE_BUCKET || secrets.TF_STATE_BUCKET || 'fiap-14soat-fase4-jonasfschuh' }}" >> "$GITHUB_ENV"
+          echo "TF_STATE_KEY_EFFECTIVE=${{ vars.TF_STATE_KEY || secrets.TF_STATE_KEY || 'infra/terraform.tfstate' }}" >> "$GITHUB_ENV"
+
+      - name: Garantir bucket de state
+        run: |
+          if aws s3api head-bucket --bucket "${TF_STATE_BUCKET_EFFECTIVE}" 2>/dev/null; then
+            echo "Bucket de state ja existe."
+          else
+            aws s3api create-bucket --bucket "${TF_STATE_BUCKET_EFFECTIVE}" --region "${{ env.AWS_REGION }}"
+          fi
+
+          aws s3api put-bucket-versioning --bucket "${TF_STATE_BUCKET_EFFECTIVE}" --versioning-configuration Status=Enabled
+
+      - name: Inicializar Terraform
+        working-directory: ./infra
+        run: |
+          terraform init -reconfigure \
+            -backend-config="bucket=${TF_STATE_BUCKET_EFFECTIVE}" \
+            -backend-config="key=${TF_STATE_KEY_EFFECTIVE}" \
+            -backend-config="region=${{ env.AWS_REGION }}" \
+            -backend-config="encrypt=true"
+
+      - name: Planejar Destruicao
+        working-directory: ./infra
+        env:
+          TF_VAR_aws_region: ${{ env.AWS_REGION }}
+          TF_VAR_bucket_name: ${{ vars.TF_VAR_BUCKET_NAME || secrets.TF_VAR_BUCKET_NAME || 'fiap-14soat-fase4-jonasfschuh' }}
+          TF_VAR_eks_cluster_name: ${{ vars.TF_VAR_EKS_CLUSTER_NAME || secrets.TF_VAR_EKS_CLUSTER_NAME || 'eks-cluster-fiap-14soat-fase4-raceforce' }}
+          TF_VAR_eks_cluster_role_name: ${{ vars.TF_VAR_EKS_CLUSTER_ROLE_NAME || secrets.TF_VAR_EKS_CLUSTER_ROLE_NAME || 'LabRole' }}
+          TF_VAR_eks_node_role_name: ${{ vars.TF_VAR_EKS_NODE_ROLE_NAME || secrets.TF_VAR_EKS_NODE_ROLE_NAME || 'LabRole' }}
+          TF_VAR_eks_node_instance_types: ${{ vars.TF_VAR_EKS_NODE_INSTANCE_TYPES || '["t3.medium"]' }}
+          TF_VAR_eks_node_scaling_desired_size: ${{ vars.TF_VAR_EKS_NODE_SCALING_DESIRED_SIZE || '2' }}
+          TF_VAR_eks_node_scaling_max_size: ${{ vars.TF_VAR_EKS_NODE_SCALING_MAX_SIZE || '2' }}
+          TF_VAR_eks_node_scaling_min_size: ${{ vars.TF_VAR_EKS_NODE_SCALING_MIN_SIZE || '1' }}
+          TF_VAR_enable_new_relic: ${{ vars.TF_VAR_ENABLE_NEW_RELIC || 'false' }}
+          TF_VAR_new_relic_license_key: ${{ secrets.NEW_RELIC_KEY }}
+          TF_VAR_new_relic_namespace: ${{ vars.NEW_RELIC_NAMESPACE || 'newrelic' }}
+          TF_VAR_new_relic_cluster_name_override: ${{ vars.NEW_RELIC_CLUSTER_NAME || '' }}
+          TF_VAR_new_relic_helm_timeout_seconds: ${{ vars.NEW_RELIC_HELM_TIMEOUT_SECONDS || '900' }}
+          TF_VAR_jwt_issuer: ${{ vars.JWT_ISSUER || secrets.JWT_ISSUER || 'RaceforceApi' }}
+          TF_VAR_jwt_audience: ${{ vars.JWT_AUDIENCE || secrets.JWT_AUDIENCE || 'AuthorizedServices' }}
+          TF_VAR_rds_master_password: ${{ secrets.DB_PASSWORD || 'placeholder-destroy-only' }}
+        run: terraform plan -destroy -input=false -out=destroy.tfplan
+
+      - name: Destruir Terraform
+        working-directory: ./infra
+        run: terraform apply -input=false -auto-approve destroy.tfplan
+
+      - name: Destruicao completa
+        run: echo "Infraestrutura AWS foi destruida com sucesso (bucket S3 de state preservado)"

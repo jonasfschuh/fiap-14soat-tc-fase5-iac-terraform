@@ -1,0 +1,128 @@
+<mxfile host="app.diagrams.net" agent="GitHub Copilot">
+  <diagram id="repo-terraform" name="Repo: iac-terraform">
+    <mxGraphModel dx="1280" dy="715" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="880" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;align=center;fontSize=15;fontStyle=1;strokeColor=none;fillColor=none;" value="Repositorio: fiap-14soat-tc-fase4-iac-terraform — O que provisiona na AWS" vertex="1">
+          <mxGeometry height="28" width="1100" x="50" y="10" as="geometry" />
+        </mxCell>
+        <mxCell id="z_cicd" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#333333;strokeWidth=2;fontSize=11;fontStyle=1;verticalAlign=top;spacingTop=4;" value="GitHub Actions — iac-terraform" vertex="1">
+          <mxGeometry height="160" width="210" x="15" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="gh_steps" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" value="deploy.yml&lt;br/&gt;terraform init&lt;br/&gt;terraform plan&lt;br/&gt;terraform apply&lt;br/&gt;helm install nri-bundle" vertex="1">
+          <mxGeometry height="95" width="175" x="28" y="93" as="geometry" />
+        </mxCell>
+        <mxCell id="z_aws" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f4fd;strokeColor=#0e4d8f;strokeWidth=3;fontSize=13;fontStyle=1;fontColor=#0e4d8f;verticalAlign=top;spacingTop=6;" value="AWS Cloud (us-east-1)" vertex="1">
+          <mxGeometry height="755" width="930" x="240" y="45" as="geometry" />
+        </mxCell>
+        <mxCell id="c_s3_icon" parent="1" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.s3;labelBackgroundColor=none;sketch=0;fillColor=#7AA116;strokeColor=#ffffff;" value="" vertex="1">
+          <mxGeometry height="55" width="55" x="355" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="c_s3_lbl" parent="1" style="text;html=1;align=center;fontSize=9;" value="S3 — Terraform State&lt;br/&gt;key: infra/terraform.tfstate" vertex="1">
+          <mxGeometry height="28" width="140" x="310" y="145" as="geometry" />
+        </mxCell>
+        <mxCell id="c_iam_icon" parent="1" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.role;labelBackgroundColor=none;sketch=0;fillColor=#DD344C;strokeColor=#ffffff;" value="" vertex="1">
+          <mxGeometry height="55" width="55" x="527" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="c_iam_lbl" parent="1" style="text;html=1;align=center;fontSize=9;" value="IAM Role&lt;br/&gt;LabRole + access-entry EKS" vertex="1">
+          <mxGeometry height="28" width="145" x="482" y="145" as="geometry" />
+        </mxCell>
+        <mxCell id="z_vpc" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0fff0;strokeColor=#82b366;strokeWidth=2;fontSize=11;fontStyle=1;verticalAlign=top;spacingTop=4;" value="Amazon VPC (vpc-023cb933a6a124e48)  —  CIDR: 172.31.0.0/16" vertex="1">
+          <mxGeometry height="560" width="890" x="255" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="c_igw_icon" parent="1" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.internet_gateway;labelBackgroundColor=none;sketch=0;fillColor=#8C4FFF;strokeColor=#ffffff;" value="" vertex="1">
+          <mxGeometry height="55" width="55" x="320" y="255" as="geometry" />
+        </mxCell>
+        <mxCell id="c_igw_lbl" parent="1" style="text;html=1;align=center;fontSize=9;" value="Internet Gateway" vertex="1">
+          <mxGeometry height="18" width="110" x="293.5" y="306" as="geometry" />
+        </mxCell>
+        <mxCell id="c_rt_icon" parent="1" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.route_table;labelBackgroundColor=none;sketch=0;fillColor=#8C4FFF;strokeColor=#ffffff;" value="" vertex="1">
+          <mxGeometry height="55" width="55" x="420" y="255" as="geometry" />
+        </mxCell>
+        <mxCell id="c_rt_lbl" parent="1" style="text;html=1;align=center;fontSize=9;" value="Route Table&lt;br/&gt;0.0.0.0/0 - IGW" vertex="1">
+          <mxGeometry height="18" width="120" x="387.5" y="305" as="geometry" />
+        </mxCell>
+        <mxCell id="c_sn1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;" value="Subnet Publica 1&lt;br/&gt;us-east-1a" vertex="1">
+          <mxGeometry height="45" width="120" x="540" y="255" as="geometry" />
+        </mxCell>
+        <mxCell id="c_sn2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;" value="Subnet Publica 2&lt;br/&gt;us-east-1b" vertex="1">
+          <mxGeometry height="45" width="120" x="680" y="255" as="geometry" />
+        </mxCell>
+        <mxCell id="c_sn3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;" value="Subnet Publica 3&lt;br/&gt;us-east-1c" vertex="1">
+          <mxGeometry height="45" width="120" x="820" y="255" as="geometry" />
+        </mxCell>
+        <mxCell id="c_sg_icon" parent="1" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.security_group;labelBackgroundColor=none;sketch=0;fillColor=#DD344C;strokeColor=#ffffff;" value="" vertex="1">
+          <mxGeometry height="50" width="50" x="975" y="255" as="geometry" />
+        </mxCell>
+        <mxCell id="c_sg_lbl" parent="1" style="text;html=1;align=center;fontSize=9;" value="Security Group&lt;br/&gt;NodePort + API" vertex="1">
+          <mxGeometry height="18" width="110" x="948" y="302" as="geometry" />
+        </mxCell>
+        <mxCell id="z_eks" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;strokeWidth=2;fontSize=11;fontStyle=1;verticalAlign=top;spacingTop=4;" value="Amazon EKS Cluster — eks-cluster-fiap-14soat-fase4-raceforce  (k8s 1.33)" vertex="1">
+          <mxGeometry height="310" width="860" x="270" y="340" as="geometry" />
+        </mxCell>
+        <mxCell id="c_eks_icon" parent="1" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.eks;labelBackgroundColor=none;sketch=0;fillColor=#C7131F;strokeColor=#ffffff;" value="" vertex="1">
+          <mxGeometry height="65" width="65" x="295" y="395" as="geometry" />
+        </mxCell>
+        <mxCell id="c_eks_lbl" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" value="EKS Control Plane&lt;br/&gt;k8s API: https://A8B6...gr7.us-east-1.eks.amazonaws.com&lt;br/&gt;OIDC: enabled&lt;br/&gt;Auth mode: API" vertex="1">
+          <mxGeometry height="75" width="260" x="375" y="385" as="geometry" />
+        </mxCell>
+        <mxCell id="c_ng_icon" parent="1" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.ec2;labelBackgroundColor=none;sketch=0;fillColor=#C7131F;strokeColor=#ffffff;" value="" vertex="1">
+          <mxGeometry height="65" width="65" x="680" y="395" as="geometry" />
+        </mxCell>
+        <mxCell id="c_ng_lbl" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" value="Node Group&lt;br/&gt;&lt;b&gt;t3.medium (2 nos)&lt;/b&gt;&lt;br/&gt;min:1 max:5&lt;br/&gt;AMI: Amazon Linux 2&lt;br/&gt;ASG + launch template" vertex="1">
+          <mxGeometry height="75" width="195" x="760" y="385" as="geometry" />
+        </mxCell>
+        <mxCell id="c_nlb_icon" parent="1" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.elb;labelBackgroundColor=none;sketch=0;fillColor=#C7131F;strokeColor=#ffffff;" value="NLB" vertex="1">
+          <mxGeometry height="60" width="60" x="295" y="500" as="geometry" />
+        </mxCell>
+        <mxCell id="c_nlb_lbl" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" value="Network Load Balancer&lt;br/&gt;&lt;b&gt;NLB (internal)&lt;/b&gt;&lt;br/&gt;Target: NodePort 30000&lt;br/&gt;integrado ao API Gateway" vertex="1">
+          <mxGeometry height="70" width="220" x="370" y="495" as="geometry" />
+        </mxCell>
+        <mxCell id="c_nr_icon" parent="1" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.general;labelBackgroundColor=none;sketch=0;fillColor=#336699;strokeColor=#ffffff;" value="" vertex="1">
+          <mxGeometry height="60" width="60" x="680" y="500" as="geometry" />
+        </mxCell>
+        <mxCell id="c_nr_lbl" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6f3ff;strokeColor=#336699;fontSize=10;" value="New Relic nri-bundle&lt;br/&gt;&lt;b&gt;Helm Chart&lt;/b&gt; (namespace: newrelic)&lt;br/&gt;nrk8s + prometheus + logging&lt;br/&gt;nr-ebpf-agent DaemonSet" vertex="1">
+          <mxGeometry height="72" width="250" x="759" y="493" as="geometry" />
+        </mxCell>
+        <mxCell id="c_ms_lbl" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" value="metrics-server (manifesto versionado)&lt;br/&gt;Habilita kubectl top + HPA" vertex="1">
+          <mxGeometry height="40" width="280" x="369" y="590" as="geometry" />
+        </mxCell>
+        <mxCell id="c_ae_lbl" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" value="EKS Access Entry&lt;br/&gt;LabRole — cluster-admin" vertex="1">
+          <mxGeometry height="40" width="200" x="680" y="590" as="geometry" />
+        </mxCell>
+        <mxCell id="z_out" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;fontSize=11;fontStyle=1;verticalAlign=top;spacingTop=4;" value="Outputs (tfstate)" vertex="1">
+          <mxGeometry height="50" width="720" x="310" y="690" as="geometry" />
+        </mxCell>
+        <mxCell id="out_lbl" parent="1" style="text;html=1;align=center;fontSize=10;fontStyle=2;" value="eks_cluster_name  |  vpc_principal_id  |  subnet_publica_ids  |  nlb_dns  |  node_group_arn" vertex="1">
+          <mxGeometry height="18" width="850" x="265" y="706" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" edge="1" parent="1" style="endArrow=block;endFill=1;strokeColor=#333333;fontSize=9;dashed=1;" value="terraform apply">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="225" y="130" as="sourcePoint" />
+            <mxPoint x="255" y="130" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e2" edge="1" parent="1" style="endArrow=block;endFill=1;strokeColor=#336699;fontSize=9;dashed=1;edgeStyle=orthogonalEdgeStyle;entryX=0.488;entryY=0.019;entryDx=0;entryDy=0;entryPerimeter=0;" target="c_nr_icon" value="helm install">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="230" y="160" />
+              <mxPoint x="230" y="480" />
+              <mxPoint x="710" y="480" />
+            </Array>
+            <mxPoint x="225" y="160" as="sourcePoint" />
+            <mxPoint x="687" y="500" as="targetPoint">
+              <Array as="points">
+                <mxPoint x="225" y="520" />
+                <mxPoint x="687" y="520" />
+              </Array>
+            </mxPoint>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="3LOwiS0ZtnShG70fkPoH-1" edge="1" parent="1" source="c_igw_lbl" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" target="c_igw_lbl">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
