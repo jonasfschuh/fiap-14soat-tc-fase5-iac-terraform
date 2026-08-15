@@ -1,0 +1,22 @@
+auth:
+  username: fiapx
+  password: fiapx123
+  erlangCookie: fiapx-erlang-cookie
+
+extraConfiguration: |
+  default_vhost = fiapx
+  default_permissions.configure = .*
+  default_permissions.read = .*
+  default_permissions.write = .*
+
+persistence:
+  enabled: true
+  size: 1Gi
+
+service:
+  type: ClusterIP
+
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: false

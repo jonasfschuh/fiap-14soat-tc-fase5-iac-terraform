@@ -1,182 +1,50 @@
-name: Deploy Infraestrutura AWS
+name: Terraform Apply - Infra Local K8s
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'infra/**'
+      - 'helm-values/**'
   workflow_dispatch:
 
-env:
-  AWS_REGION: us-east-1
-  TF_IN_AUTOMATION: true
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
-  deploy-infrastructure:
-    name: Deploy Infrastructure
-    runs-on: ubuntu-latest
-
-    permissions:
-      contents: read
+  terraform-apply:
+    name: Terraform Apply
+    runs-on: self-hosted # Runner local com kubectl, helm e terraform instalados.
+    defaults:
+      run:
+        working-directory: infra
+        shell: bash
 
     steps:
-      - name: Checkout do codigo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Configurar credenciais AWS
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Configurar Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.10.0
-
-      - name: Resolver configuracao de backend
+      - name: Verificar ferramentas
         run: |
-          echo "TF_STATE_BUCKET_EFFECTIVE=${{ vars.TF_STATE_BUCKET || secrets.TF_STATE_BUCKET || 'fiap-14soat-fase5-jonasfschuh' }}" >> "$GITHUB_ENV"
-          echo "TF_STATE_KEY_EFFECTIVE=${{ vars.TF_STATE_KEY || secrets.TF_STATE_KEY || 'infra/terraform.tfstate' }}" >> "$GITHUB_ENV"
+          terraform version
+          kubectl version --client
+          helm version
 
-      - name: Garantir bucket de state
-        run: |
-          if aws s3api head-bucket --bucket "${TF_STATE_BUCKET_EFFECTIVE}" 2>/dev/null; then
-            echo "Bucket de state ja existe."
-          else
-            aws s3api create-bucket --bucket "${TF_STATE_BUCKET_EFFECTIVE}" --region "${{ env.AWS_REGION }}"
-          fi
+      - name: Terraform Init
+        run: terraform init -input=false
 
-          # Sempre garante versionamento ativo para proteger historico do tfstate.
-          aws s3api put-bucket-versioning --bucket "${TF_STATE_BUCKET_EFFECTIVE}" --versioning-configuration Status=Enabled
-
-      - name: Inicializar Terraform
-        working-directory: ./infra
-        run: |
-          terraform init -reconfigure \
-            -backend-config="bucket=${TF_STATE_BUCKET_EFFECTIVE}" \
-            -backend-config="key=${TF_STATE_KEY_EFFECTIVE}" \
-            -backend-config="region=${{ env.AWS_REGION }}" \
-            -backend-config="encrypt=true"
-
-      - name: Validar Terraform
-        working-directory: ./infra
+      - name: Terraform Validate
         run: terraform validate
 
-      - name: Planejar Terraform
-        working-directory: ./infra
-        env:
-          TF_VAR_aws_region: ${{ env.AWS_REGION }}
-          TF_VAR_project_identifier: ${{ vars.TF_VAR_PROJECT_IDENTIFIER || 'fiap-14soat-fase5-raceforce' }}
-          TF_VAR_bucket_name: ${{ vars.TF_VAR_BUCKET_NAME || secrets.TF_VAR_BUCKET_NAME || 'fiap-14soat-fase5-jonasfschuh' }}
-          TF_VAR_eks_cluster_name: ${{ vars.TF_VAR_EKS_CLUSTER_NAME || secrets.TF_VAR_EKS_CLUSTER_NAME || 'eks-cluster-fiap-14soat-fase5-raceforce' }}
-          TF_VAR_eks_cluster_role_name: ${{ vars.TF_VAR_EKS_CLUSTER_ROLE_NAME || secrets.TF_VAR_EKS_CLUSTER_ROLE_NAME || 'LabRole' }}
-          TF_VAR_eks_node_role_name: ${{ vars.TF_VAR_EKS_NODE_ROLE_NAME || secrets.TF_VAR_EKS_NODE_ROLE_NAME || 'LabRole' }}
-          TF_VAR_eks_node_instance_types: ${{ vars.TF_VAR_EKS_NODE_INSTANCE_TYPES || '["t3.medium"]' }}
-          TF_VAR_eks_node_scaling_desired_size: ${{ vars.TF_VAR_EKS_NODE_SCALING_DESIRED_SIZE || '2' }}
-          TF_VAR_eks_node_scaling_max_size: ${{ vars.TF_VAR_EKS_NODE_SCALING_MAX_SIZE || '2' }}
-          TF_VAR_eks_node_scaling_min_size: ${{ vars.TF_VAR_EKS_NODE_SCALING_MIN_SIZE || '1' }}
-          TF_VAR_enable_new_relic: ${{ vars.TF_VAR_ENABLE_NEW_RELIC || 'false' }}
-          TF_VAR_new_relic_license_key: ${{ secrets.NEW_RELIC_KEY }}
-          TF_VAR_new_relic_namespace: ${{ vars.NEW_RELIC_NAMESPACE || 'newrelic' }}
-          TF_VAR_new_relic_cluster_name_override: ${{ vars.NEW_RELIC_CLUSTER_NAME || '' }}
-          TF_VAR_new_relic_helm_timeout_seconds: ${{ vars.NEW_RELIC_HELM_TIMEOUT_SECONDS || '900' }}
-          TF_VAR_enable_eks_ci_access_entry: ${{ vars.TF_VAR_ENABLE_EKS_CI_ACCESS_ENTRY || 'true' }}
-          TF_VAR_eks_ci_access_principal_arn: ${{ vars.TF_VAR_EKS_CI_ACCESS_PRINCIPAL_ARN || secrets.TF_VAR_EKS_CI_ACCESS_PRINCIPAL_ARN || '' }}
-          TF_VAR_jwt_issuer: ${{ vars.JWT_ISSUER || secrets.JWT_ISSUER || 'RaceforceApi' }}
-          TF_VAR_jwt_audience: ${{ vars.JWT_AUDIENCE || secrets.JWT_AUDIENCE || 'AuthorizedServices' }}
-          TF_VAR_rds_master_password: ${{ secrets.DB_PASSWORD }}
+      - name: Terraform Plan
         run: terraform plan -input=false -out=tfplan
-
-      - name: Aplicar Terraform
-        working-directory: ./infra
-        run: terraform apply -input=false -auto-approve tfplan
-
-      - name: Diagnostico Helm/New Relic em caso de falha
-        if: failure()
-        continue-on-error: true
         env:
-          EKS_CLUSTER_NAME: ${{ vars.TF_VAR_EKS_CLUSTER_NAME || secrets.TF_VAR_EKS_CLUSTER_NAME || 'eks-cluster-fiap-14soat-fase5-raceforce' }}
-          NEW_RELIC_NAMESPACE: ${{ vars.NEW_RELIC_NAMESPACE || 'newrelic' }}
-        run: |
-          if ! aws eks describe-cluster --region "${{ env.AWS_REGION }}" --name "${EKS_CLUSTER_NAME}" >/dev/null 2>&1; then
-            echo "Cluster ${EKS_CLUSTER_NAME} nao encontrado. Pulando diagnostico de kubeconfig."
-            exit 0
-          fi
-          aws eks update-kubeconfig --region "${{ env.AWS_REGION }}" --name "${EKS_CLUSTER_NAME}"
+          TF_VAR_jwt_secret: ${{ secrets.JWT_SECRET }}
+          TF_VAR_rabbitmq_password: ${{ secrets.RABBITMQ_PASSWORD }}
+          TF_VAR_postgres_password: ${{ secrets.POSTGRES_PASSWORD }}
 
-          {
-            echo "## Diagnostico de falha - New Relic"
-            echo ""
-            echo "- Cluster: ${EKS_CLUSTER_NAME}"
-            echo "- Namespace: ${NEW_RELIC_NAMESPACE}"
-            echo ""
-          } >> "$GITHUB_STEP_SUMMARY"
-
-          if command -v helm >/dev/null 2>&1; then
-            {
-              echo "### Helm status"
-              echo '```text'
-              helm --namespace "${NEW_RELIC_NAMESPACE}" status newrelic-bundle 2>&1 || true
-              echo '```'
-              echo ""
-            } >> "$GITHUB_STEP_SUMMARY"
-          fi
-
-          {
-            echo "### Pods"
-            echo '```text'
-            kubectl get pods -n "${NEW_RELIC_NAMESPACE}" -o wide 2>&1 || true
-            echo '```'
-            echo ""
-            echo "### Eventos (ultimos 50)"
-            echo '```text'
-            kubectl get events -n "${NEW_RELIC_NAMESPACE}" --sort-by=.metadata.creationTimestamp 2>&1 | tail -50 || true
-            echo '```'
-            echo ""
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Validar agentes New Relic no cluster
-        if: always()
-        continue-on-error: true
+      - name: Terraform Apply
+        run: terraform apply -input=false tfplan
         env:
-          EKS_CLUSTER_NAME: ${{ vars.TF_VAR_EKS_CLUSTER_NAME || secrets.TF_VAR_EKS_CLUSTER_NAME || 'eks-cluster-fiap-14soat-fase5-raceforce' }}
-          ENABLE_NEW_RELIC: ${{ vars.TF_VAR_ENABLE_NEW_RELIC || 'false' }}
-          NEW_RELIC_NAMESPACE: ${{ vars.NEW_RELIC_NAMESPACE || 'newrelic' }}
-        run: |
-          {
-            echo "## Validacao New Relic no EKS"
-            echo ""
-          } >> "$GITHUB_STEP_SUMMARY"
+          TF_VAR_jwt_secret: ${{ secrets.JWT_SECRET }}
+          TF_VAR_rabbitmq_password: ${{ secrets.RABBITMQ_PASSWORD }}
+          TF_VAR_postgres_password: ${{ secrets.POSTGRES_PASSWORD }}
 
-          if [ "${ENABLE_NEW_RELIC}" != "true" ]; then
-            {
-              echo "- New Relic desabilitado para este deploy (TF_VAR_ENABLE_NEW_RELIC=${ENABLE_NEW_RELIC})."
-              echo ""
-            } >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
-
-          aws eks update-kubeconfig --region "${{ env.AWS_REGION }}" --name "${EKS_CLUSTER_NAME}"
-
-          if ! command -v kubectl >/dev/null 2>&1; then
-            echo "- kubectl nao encontrado no runner; pulando checagem de pods." >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
-
-          PODS_OUTPUT=$(kubectl get pods -n "${NEW_RELIC_NAMESPACE}" -o wide 2>&1 || true)
-
-          {
-            echo "- Cluster: ${EKS_CLUSTER_NAME}"
-            echo "- Namespace: ${NEW_RELIC_NAMESPACE}"
-            echo ""
-            echo '```text'
-            echo "${PODS_OUTPUT}"
-            echo '```'
-            echo ""
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Verificar publicacao do tfstate
-        run: |
-          echo "Validando state publicado em s3://${TF_STATE_BUCKET_EFFECTIVE}/${TF_STATE_KEY_EFFECTIVE}"
-          aws s3api head-object --bucket "${TF_STATE_BUCKET_EFFECTIVE}" --key "${TF_STATE_KEY_EFFECTIVE}" >/dev/null
-          echo "State da infraestrutura disponivel para consumo pelo app-k8s."
+      - name: Exibir outputs
+        run: terraform output

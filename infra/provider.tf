@@ -1,8 +1,9 @@
+# Configura o Terraform para usar os providers do Kubernetes e do Helm localmente.
 terraform {
   required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 6.0"
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = "~> 2.30"
     }
     helm = {
       source  = "hashicorp/helm"
@@ -11,20 +12,16 @@ terraform {
   }
 }
 
-provider "aws" {
-  region = var.aws_region
+# Usa o kubeconfig local apontando para o contexto configurado no Docker Desktop.
+provider "kubernetes" {
+  config_path    = "~/.kube/config"
+  config_context = var.kube_context
 }
 
-# Configuração do Helm para conectar no EKS
+# Usa o mesmo kubeconfig local para instalar charts Helm no cluster.
 provider "helm" {
   kubernetes {
-    host                   = aws_eks_cluster.eks_cluster.endpoint
-    cluster_ca_certificate = base64decode(aws_eks_cluster.eks_cluster.certificate_authority[0].data)
-
-    exec {
-      api_version = "client.authentication.k8s.io/v1beta1"
-      args        = ["eks", "get-token", "--cluster-name", aws_eks_cluster.eks_cluster.name]
-      command     = "aws"
-    }
+    config_path    = "~/.kube/config"
+    config_context = var.kube_context
   }
 }

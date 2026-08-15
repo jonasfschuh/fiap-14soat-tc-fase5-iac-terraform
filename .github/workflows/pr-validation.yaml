@@ -1,63 +1,20 @@
-name: Validar Pull Request
+name: PR Validation - Terraform
 
 on:
   pull_request:
-    branches: ["main"]
-
-env:
-  TF_IN_AUTOMATION: true
-  # Opt-in para Node.js 24 (actions/checkout será removido do Node.js 20 em setembro/2026)
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    branches: [main]
+    paths:
+      - 'infra/**'
 
 jobs:
-  terraform-validation:
-    runs-on: ubuntu-latest
-
-    permissions:
-      contents: read
-
+  validate:
+    runs-on: self-hosted
+    defaults:
+      run:
+        working-directory: infra
+        shell: bash
     steps:
-      - name: Checkout do codigo
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Verificar mudancas na pasta infra
-        id: changes
-        run: |
-          # Usa os SHAs do evento PR para comparação confiável (não depende de refs remotas)
-          CHANGED=$(git diff --name-only \
-            ${{ github.event.pull_request.base.sha }} \
-            ${{ github.event.pull_request.head.sha }} 2>/dev/null || true)
-          if echo "$CHANGED" | grep -q '^infra/'; then
-            echo "infra_changed=true" >> $GITHUB_OUTPUT
-            echo "Mudancas detectadas em infra/:"
-            echo "$CHANGED" | grep '^infra/'
-          else
-            echo "infra_changed=false" >> $GITHUB_OUTPUT
-            echo "Sem alteracoes em infra/ neste PR."
-          fi
-
-      - name: Configurar Terraform
-        if: steps.changes.outputs.infra_changed == 'true'
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.10.0
-
-      - name: Inicializar Terraform (sem backend remoto)
-        if: steps.changes.outputs.infra_changed == 'true'
-        working-directory: ./infra
-        run: terraform init -backend=false
-
-      - name: Validar configuracao do Terraform
-        if: steps.changes.outputs.infra_changed == 'true'
-        working-directory: ./infra
-        run: terraform validate
-
-      - name: Resumo da validacao
-        if: steps.changes.outputs.infra_changed == 'true'
-        run: echo "Validacao do Terraform concluida com sucesso."
-
-      - name: Nenhuma mudanca na infraestrutura
-        if: steps.changes.outputs.infra_changed == 'false'
-        run: echo "Sem alteracoes detectadas na pasta infra/ - pulando validacao do Terraform."
+      - uses: actions/checkout@v4
+      - run: terraform init -backend=false -input=false
+      - run: terraform validate
+      - run: terraform fmt -check -recursive

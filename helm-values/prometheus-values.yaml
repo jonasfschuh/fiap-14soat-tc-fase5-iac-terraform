@@ -1,0 +1,12 @@
+server:
+  service:
+    type: LoadBalancer
+    servicePort: 9090
+  persistentVolume:
+    enabled: false
+
+alertmanager:
+  enabled: false
+
+pushgateway:
+  enabled: false

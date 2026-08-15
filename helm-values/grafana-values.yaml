@@ -1,0 +1,18 @@
+adminPassword: admin
+
+service:
+  type: LoadBalancer
+  port: 3000
+
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        url: http://prometheus-server.fiapx.svc.cluster.local:9090
+        access: proxy
+        isDefault: true
+
+persistence:
+  enabled: false
