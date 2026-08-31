@@ -13,7 +13,7 @@ jobs:
     name: Terraform Apply
 
     # Runner Windows local
-    runs-on: [self-hosted, windows, terraform-local]
+    runs-on: [self-hosted, Windows, X64]
 
     defaults:
       run:
