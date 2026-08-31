@@ -10,9 +10,34 @@ datasources:
     datasources:
       - name: Prometheus
         type: prometheus
-        url: http://prometheus-server.fiapx.svc.cluster.local:9090
+        uid: prometheus
         access: proxy
+        url: http://prometheus-server.fiapx.svc.cluster.local:9090
         isDefault: true
+        editable: false
+        jsonData:
+          httpMethod: POST
+          timeInterval: "15s"
+
+dashboardProviders:
+  dashboardproviders.yaml:
+    apiVersion: 1
+    providers:
+      - name: fiapx-dashboards
+        orgId: 1
+        type: file
+        disableDeletion: false
+        updateIntervalSeconds: 30
+        allowUiUpdates: true
+        options:
+          path: /var/lib/grafana/dashboards/fiapx-dashboards
+
+dashboardsConfigMaps:
+  fiapx-dashboards: grafana-dashboards
+
+grafana.ini:
+  dashboards:
+    default_home_dashboard_path: /var/lib/grafana/dashboards/fiapx-dashboards/01-overview.json
 
 persistence:
   enabled: false
