@@ -10,3 +10,6 @@ alertmanager:
 
 pushgateway:
   enabled: false
+
+nodeExporter:
+  enabled: false

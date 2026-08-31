@@ -42,7 +42,7 @@ if grep -q 'TROQUE-POR-UMA-CHAVE-FORTE' "${TFVARS_FILE}"; then
 fi
 
 echo "[INFO] Preparando diretório compartilhado de vídeos em /data/fiapx-videos..."
-docker run --rm -v /data/fiapx-videos:/target alpine:3.20 sh -c 'mkdir -p /target/uploads /target/processed'
+MSYS_NO_PATHCONV=1 docker run --rm -v /data/fiapx-videos:/target alpine:3.20 sh -c 'mkdir -p /target/uploads /target/processed'
 
 echo "[INFO] Inicializando providers Terraform..."
 terraform -chdir="${INFRA_DIR}" init -input=false
@@ -52,7 +52,14 @@ terraform -chdir="${INFRA_DIR}" apply -input=false -auto-approve
 
 echo
 echo "[OK] Infraestrutura local provisionada com sucesso."
-echo "- RabbitMQ:  http://localhost:15672"
+echo "- MailHog UI:  http://localhost:8025 (caixa de entrada de e-mails de teste)"
+echo "- MailHog SMTP: localhost:1025 (para conexão de aplicações locais)"
+echo "- RabbitMQ Management: http://localhost:15672 (usuário: fiapx, senha: fiapx123, VHost: fiapx)"
+echo "- RabbitMQ AMQP:   localhost:5672 (para conexão dos microservices)"
+echo "- PostgreSQL auth:       localhost:5430 (banco: auth_db)"
+echo "- PostgreSQL upload:     localhost:5433 (banco: video_upload_db)"
+echo "- PostgreSQL status:     localhost:5434 (banco: video_status_db)"
+echo "- PostgreSQL processing: localhost:5435 (banco: video_processing_db)"
 echo "- Prometheus: http://localhost:9090"
 echo "- Grafana:    http://localhost:3000"
 echo "- Ingress:    http://localhost"

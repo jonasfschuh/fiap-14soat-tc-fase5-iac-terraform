@@ -59,7 +59,7 @@ resource "kubernetes_ingress_v1" "fiapx" {
         }
 
         path {
-          path      = "/upload(/|$)(.*)"
+          path      = "/video-upload(/|$)(.*)"
           path_type = "ImplementationSpecific"
 
           backend {
