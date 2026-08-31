@@ -11,20 +11,29 @@ on:
 jobs:
   terraform-apply:
     name: Terraform Apply
-    runs-on: self-hosted # Runner local com kubectl, helm e terraform instalados.
+
+    # Runner Windows local
+    runs-on: [self-hosted, windows, terraform-local]
+
     defaults:
       run:
         working-directory: infra
-        shell: bash
+        shell: pwsh
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Verificar ferramentas
         run: |
           terraform version
           kubectl version --client
           helm version
+
+      - name: Verificar Kubernetes
+        run: |
+          kubectl cluster-info
+          kubectl get nodes
 
       - name: Terraform Init
         run: terraform init -input=false
