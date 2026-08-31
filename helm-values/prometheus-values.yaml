@@ -38,7 +38,7 @@ extraScrapeConfigs: |
     metrics_path: '/actuator/prometheus'
     scrape_interval: 15s
     static_configs:
-      - targets: ['localhost:8084']
+      - targets: ['localhost:8086']
     relabel_configs:
       - source_labels: [__address__]
         target_label: instance
@@ -53,7 +53,7 @@ extraScrapeConfigs: |
     metrics_path: '/actuator/prometheus'
     scrape_interval: 15s
     static_configs:
-      - targets: ['localhost:8085']
+      - targets: ['localhost:8084']
     relabel_configs:
       - source_labels: [__address__]
         target_label: instance
@@ -68,7 +68,7 @@ extraScrapeConfigs: |
     metrics_path: '/actuator/prometheus'
     scrape_interval: 15s
     static_configs:
-      - targets: ['localhost:8086']
+      - targets: ['localhost:8085']
     relabel_configs:
       - source_labels: [__address__]
         target_label: instance
