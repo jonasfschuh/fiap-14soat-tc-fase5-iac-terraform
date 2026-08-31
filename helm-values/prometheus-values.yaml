@@ -15,17 +15,22 @@ nodeExporter:
   enabled: false
 
 # Scrape dos microserviços Spring Boot via /actuator/prometheus.
-# Cada job inclui dois targets:
-#   1. DNS do Kubernetes Service (quando o serviço está rodando no cluster)
-#   2. host.docker.internal (quando o serviço está rodando localmente na IDE)
-# O Prometheus coleta de qualquer um que estiver UP — os dois podem coexistir.
+# Os targets são declarados como localhost:PORT (exibido na UI do Prometheus).
+# O relabeling salva 'instance' como localhost:PORT antes de reescrever
+# __address__ para host.docker.internal:PORT (necessário dentro do cluster K8s).
 extraScrapeConfigs: |
   - job_name: 'video-upload-service'
     metrics_path: '/actuator/prometheus'
     scrape_interval: 15s
     static_configs:
-      - targets: ['video-upload-service:8083', 'host.docker.internal:8083']
+      - targets: ['localhost:8083']
     relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+      - source_labels: [__address__]
+        regex: 'localhost:(\d+)'
+        target_label: __address__
+        replacement: 'host.docker.internal:${1}'
       - target_label: service
         replacement: 'video-upload'
 
@@ -33,8 +38,14 @@ extraScrapeConfigs: |
     metrics_path: '/actuator/prometheus'
     scrape_interval: 15s
     static_configs:
-      - targets: ['video-processing-service:8084', 'host.docker.internal:8084']
+      - targets: ['localhost:8084']
     relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+      - source_labels: [__address__]
+        regex: 'localhost:(\d+)'
+        target_label: __address__
+        replacement: 'host.docker.internal:${1}'
       - target_label: service
         replacement: 'video-processing'
 
@@ -42,8 +53,14 @@ extraScrapeConfigs: |
     metrics_path: '/actuator/prometheus'
     scrape_interval: 15s
     static_configs:
-      - targets: ['video-status-service:8085', 'host.docker.internal:8085']
+      - targets: ['localhost:8085']
     relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+      - source_labels: [__address__]
+        regex: 'localhost:(\d+)'
+        target_label: __address__
+        replacement: 'host.docker.internal:${1}'
       - target_label: service
         replacement: 'video-status'
 
@@ -51,8 +68,14 @@ extraScrapeConfigs: |
     metrics_path: '/actuator/prometheus'
     scrape_interval: 15s
     static_configs:
-      - targets: ['video-download-service:8086', 'host.docker.internal:8086']
+      - targets: ['localhost:8086']
     relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+      - source_labels: [__address__]
+        regex: 'localhost:(\d+)'
+        target_label: __address__
+        replacement: 'host.docker.internal:${1}'
       - target_label: service
         replacement: 'video-download'
 
@@ -60,8 +83,14 @@ extraScrapeConfigs: |
     metrics_path: '/actuator/prometheus'
     scrape_interval: 15s
     static_configs:
-      - targets: ['notification-service:8087', 'host.docker.internal:8087']
+      - targets: ['localhost:8087']
     relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+      - source_labels: [__address__]
+        regex: 'localhost:(\d+)'
+        target_label: __address__
+        replacement: 'host.docker.internal:${1}'
       - target_label: service
         replacement: 'notification'
 
