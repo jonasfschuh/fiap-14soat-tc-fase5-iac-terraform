@@ -13,3 +13,155 @@ pushgateway:
 
 nodeExporter:
   enabled: false
+
+# Scrape dos microserviços Spring Boot via /actuator/prometheus.
+# Cada job inclui dois targets:
+#   1. DNS do Kubernetes Service (quando o serviço está rodando no cluster)
+#   2. host.docker.internal (quando o serviço está rodando localmente na IDE)
+# O Prometheus coleta de qualquer um que estiver UP — os dois podem coexistir.
+extraScrapeConfigs: |
+  - job_name: 'video-upload-service'
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['video-upload-service:8083', 'host.docker.internal:8083']
+    relabel_configs:
+      - target_label: service
+        replacement: 'video-upload'
+
+  - job_name: 'video-processing-service'
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['video-processing-service:8084', 'host.docker.internal:8084']
+    relabel_configs:
+      - target_label: service
+        replacement: 'video-processing'
+
+  - job_name: 'video-status-service'
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['video-status-service:8085', 'host.docker.internal:8085']
+    relabel_configs:
+      - target_label: service
+        replacement: 'video-status'
+
+  - job_name: 'video-download-service'
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['video-download-service:8086', 'host.docker.internal:8086']
+    relabel_configs:
+      - target_label: service
+        replacement: 'video-download'
+
+  - job_name: 'notification-service'
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['notification-service:8087', 'host.docker.internal:8087']
+    relabel_configs:
+      - target_label: service
+        replacement: 'notification'
+
+# Regras de alerta equivalentes às do repositório observability.
+serverFiles:
+  alerting_rules.yml:
+    groups:
+      - name: service_availability
+        interval: 30s
+        rules:
+          - alert: ServiceDown
+            expr: up{job=~"video-.*-service|notification-service"} == 0
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Servico {{ $labels.job }} esta fora do ar"
+              description: "O servico {{ $labels.job }} nao responde ha mais de 1 minuto."
+
+          - alert: ServiceRestarting
+            expr: changes(process_start_time_seconds{job=~"video-.*-service|notification-service"}[10m]) > 2
+            for: 0m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Servico {{ $labels.job }} reiniciou multiplas vezes"
+              description: "O servico reiniciou mais de 2 vezes nos ultimos 10 minutos."
+
+      - name: http_performance
+        rules:
+          - alert: HighErrorRate5xx
+            expr: |
+              (
+                rate(http_server_requests_seconds_count{status=~"5.."}[5m])
+                /
+                rate(http_server_requests_seconds_count[5m])
+              ) > 0.05
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Alta taxa de erros 5xx em {{ $labels.job }}"
+              description: "Taxa de erros HTTP 5xx acima de 5% no servico {{ $labels.job }}."
+
+          - alert: HighLatencyP95
+            expr: |
+              histogram_quantile(0.95,
+                rate(http_server_requests_seconds_bucket[5m])
+              ) > 2.0
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Latencia p95 alta em {{ $labels.job }}"
+              description: "Latencia p95 acima de 2 segundos no servico {{ $labels.job }}."
+
+          - alert: HighJvmHeapUsage
+            expr: |
+              (jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"}) > 0.85
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Uso de heap JVM alto em {{ $labels.job }}"
+              description: "Heap JVM acima de 85% no servico {{ $labels.job }}."
+
+      - name: video_processing
+        rules:
+          - alert: VideoProcessingErrors
+            expr: |
+              rate(http_server_requests_seconds_count{
+                job="video-processing-service", status=~"5.."
+              }[10m]) > 0.1
+            for: 5m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Alta taxa de falhas no processamento de video"
+              description: "O video-processing-service esta falhando com alta frequencia."
+
+          - alert: NotificationEmailFailures
+            expr: |
+              rate(http_server_requests_seconds_count{
+                job="notification-service", status=~"5.."
+              }[10m]) > 0.05
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Falhas no envio de notificacoes"
+              description: "O notification-service esta com falhas de envio de e-mail."
+
+          - alert: HighGcPauseTime
+            expr: |
+              rate(jvm_gc_pause_seconds_sum[5m])
+              /
+              rate(jvm_gc_pause_seconds_count[5m]) > 0.5
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Pausas de GC elevadas em {{ $labels.job }}"
+              description: "O GC esta pausando a JVM por mais de 500ms no servico {{ $labels.job }}."
