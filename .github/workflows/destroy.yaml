@@ -13,6 +13,20 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v4
+
+      # O terraform destroy também avalia os file() do observability.tf ao ler
+      # o estado da configuração, portanto o repo de observabilidade precisa estar
+      # disponível no mesmo caminho relativo usado localmente.
+      - name: Checkout observability dashboards
+        working-directory: ${{ github.workspace }}
+        run: |
+          OBSERVABILITY_DIR="$(dirname "$GITHUB_WORKSPACE")/fiap-14soat-tc-fase5-observability"
+          if [ ! -d "$OBSERVABILITY_DIR" ]; then
+            git clone --depth 1 \
+              "https://x-access-token:${{ secrets.GH_PAT }}@github.com/jonasfschuh/fiap-14soat-tc-fase5-observability" \
+              "$OBSERVABILITY_DIR"
+          fi
+
       - name: Terraform Init
         run: terraform init -input=false
       - name: Terraform Destroy

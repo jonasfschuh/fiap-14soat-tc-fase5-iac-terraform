@@ -15,6 +15,19 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v4
+
+      # Clona o repo de observabilidade no mesmo nível que o repo IAC para que
+      # os file() em observability.tf resolvam corretamente (../../fiap-14soat-tc-fase5-observability).
+      - name: Checkout observability dashboards
+        working-directory: ${{ github.workspace }}
+        run: |
+          OBSERVABILITY_DIR="$(dirname "$GITHUB_WORKSPACE")/fiap-14soat-tc-fase5-observability"
+          if [ ! -d "$OBSERVABILITY_DIR" ]; then
+            git clone --depth 1 \
+              "https://x-access-token:${{ secrets.GH_PAT }}@github.com/jonasfschuh/fiap-14soat-tc-fase5-observability" \
+              "$OBSERVABILITY_DIR"
+          fi
+
       - run: terraform init -backend=false -input=false
       - run: terraform validate
       - run: terraform fmt -check -recursive
