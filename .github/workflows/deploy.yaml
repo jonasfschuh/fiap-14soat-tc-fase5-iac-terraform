@@ -60,23 +60,74 @@ jobs:
         run: terraform init -input=false
 
       - name: Importar recursos já existentes no cluster
-        # Importa recursos que podem existir no cluster mas não no tfstate atual.
-        # Isso ocorre quando o estado foi perdido (primeira execução ou limpeza de workspace).
-        # O check via 'terraform state list' evita erro de double-import.
+        # Bootstrap: importa todos os recursos que já existem no cluster mas não
+        # estão no estado Terraform (ocorre na primeira execução ou após perda do tfstate).
+        # Na segunda execução em diante, o clean:false preserva o estado e todos
+        # os TryImport são ignorados (SKIP).
         run: |
-          $inState = terraform state list 2>$null
-          if ($inState -notcontains "kubernetes_namespace_v1.fiapx") {
-            Write-Host "[INFO] Importando namespace fiapx..."
-            terraform import kubernetes_namespace_v1.fiapx fiapx
-          } else {
-            Write-Host "[INFO] kubernetes_namespace_v1.fiapx ja esta no estado."
+          $raw = terraform state list 2>$null
+          $stateList = if ($null -ne $raw -and $raw.Length -gt 0) { @($raw) } else { @() }
+          Write-Host "[INFO] $($stateList.Count) recurso(s) no estado atual."
+
+          function TryImport {
+            param([string]$addr, [string]$id)
+            if ($stateList -contains $addr) {
+              Write-Host "[SKIP]   $addr"
+              return
+            }
+            Write-Host "[IMPORT] $addr <- $id"
+            terraform import $addr $id
+            if ($LASTEXITCODE -ne 0) {
+              Write-Warning "[AVISO]  $addr : falhou (pode nao existir ainda, sera criado no apply)"
+            }
           }
-          if ($inState -notcontains "kubernetes_persistent_volume_v1.video_storage") {
-            Write-Host "[INFO] Importando PersistentVolume fiapx-video-storage..."
-            terraform import kubernetes_persistent_volume_v1.video_storage fiapx-video-storage
-          } else {
-            Write-Host "[INFO] kubernetes_persistent_volume_v1.video_storage ja esta no estado."
+
+          $ns = "fiapx"
+
+          # ── Namespace e Storage ────────────────────────────────────────────────
+          TryImport "kubernetes_namespace_v1.fiapx"                        "$ns"
+          TryImport "kubernetes_persistent_volume_v1.video_storage"        "fiapx-video-storage"
+          TryImport "kubernetes_persistent_volume_claim_v1.video_storage"  "$ns/fiapx-video-pvc"
+
+          # ── ConfigMaps ─────────────────────────────────────────────────────────
+          TryImport "kubernetes_config_map_v1.mail_config"             "$ns/mail-config"
+          TryImport "kubernetes_config_map_v1.rabbitmq_config"         "$ns/rabbitmq-config"
+          TryImport "kubernetes_config_map_v1.rabbitmq_server_config"  "$ns/rabbitmq-server-config"
+          TryImport "kubernetes_config_map_v1.grafana_dashboards"      "$ns/grafana-dashboards"
+
+          # ── Secrets ────────────────────────────────────────────────────────────
+          TryImport "kubernetes_secret_v1.jwt_secret"           "$ns/jwt-secret"
+          TryImport "kubernetes_secret_v1.rabbitmq_secret"      "$ns/rabbitmq-secret"
+          TryImport "kubernetes_secret_v1.rabbitmq_definitions" "$ns/rabbitmq-definitions"
+          foreach ($k in @("auth", "upload", "processing", "status")) {
+            TryImport "kubernetes_secret_v1.postgres_secret[`"$k`"]" "$ns/postgres-$k-secret"
           }
+
+          # ── RabbitMQ ───────────────────────────────────────────────────────────
+          TryImport "kubernetes_stateful_set_v1.rabbitmq"       "$ns/rabbitmq"
+          TryImport "kubernetes_service_v1.rabbitmq_amqp"       "$ns/rabbitmq"
+          TryImport "kubernetes_service_v1.rabbitmq_management" "$ns/rabbitmq-management"
+          TryImport "kubernetes_service_v1.rabbitmq_amqp_lb"    "$ns/rabbitmq-amqp-lb"
+
+          # ── PostgreSQL (for_each: auth, upload, processing, status) ────────────
+          foreach ($k in @("auth", "upload", "processing", "status")) {
+            TryImport "kubernetes_service_v1.postgres[`"$k`"]"      "$ns/postgres-$k"
+            TryImport "kubernetes_stateful_set_v1.postgres[`"$k`"]" "$ns/postgres-$k"
+            TryImport "kubernetes_service_v1.postgres_lb[`"$k`"]"   "$ns/postgres-$k-lb"
+          }
+
+          # ── MailHog ────────────────────────────────────────────────────────────
+          TryImport "kubernetes_deployment_v1.mailhog" "$ns/mailhog"
+          TryImport "kubernetes_service_v1.mailhog"    "$ns/mailhog"
+          TryImport "kubernetes_service_v1.mailhog_lb" "$ns/mailhog-lb"
+
+          # ── Helm releases ──────────────────────────────────────────────────────
+          TryImport "helm_release.ingress_nginx" "$ns/ingress-nginx"
+          TryImport "helm_release.prometheus"    "$ns/prometheus"
+          TryImport "helm_release.grafana"       "$ns/grafana"
+
+          # ── Ingress ────────────────────────────────────────────────────────────
+          TryImport "kubernetes_ingress_v1.fiapx" "$ns/fiapx-ingress"
         env:
           TF_VAR_jwt_secret: ${{ secrets.JWT_SECRET }}
           TF_VAR_rabbitmq_password: ${{ secrets.RABBITMQ_PASSWORD }}
