@@ -214,7 +214,7 @@ resource "kubernetes_config_map_v1" "rabbitmq_server_config" {
   }
 
   data = {
-    "rabbitmq.conf" = <<-EOT
+    "rabbitmq.conf"   = <<-EOT
       default_vhost = ${var.rabbitmq_vhost}
       default_permissions.configure = .*
       default_permissions.read = .*
@@ -254,6 +254,13 @@ resource "kubernetes_stateful_set_v1" "rabbitmq" {
         labels = {
           "app.kubernetes.io/name"     = "rabbitmq"
           "app.kubernetes.io/instance" = "rabbitmq"
+          "app"                        = "rabbitmq"
+        }
+        annotations = {
+          "prometheus.io/scrape" = "true"
+          "prometheus.io/port"   = "15692"
+          "prometheus.io/path"   = "/metrics"
+          "prometheus.io/scheme" = "http"
         }
       }
 

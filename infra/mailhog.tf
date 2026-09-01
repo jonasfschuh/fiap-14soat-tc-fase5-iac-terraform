@@ -26,6 +26,7 @@ resource "kubernetes_deployment_v1" "mailhog" {
         labels = {
           "app.kubernetes.io/name"     = "mailhog"
           "app.kubernetes.io/instance" = "mailhog"
+          "app"                        = "mailhog"
         }
       }
 

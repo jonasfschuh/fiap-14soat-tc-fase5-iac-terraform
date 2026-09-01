@@ -32,6 +32,7 @@ resource "kubernetes_config_map_v1" "grafana_dashboards" {
     "04-video-status.json"     = file("${path.module}/../../fiap-14soat-tc-fase5-observability/grafana/dashboards/04-video-status.json")
     "05-video-download.json"   = file("${path.module}/../../fiap-14soat-tc-fase5-observability/grafana/dashboards/05-video-download.json")
     "06-notification.json"     = file("${path.module}/../../fiap-14soat-tc-fase5-observability/grafana/dashboards/06-notification.json")
+    "07-infrastructure.json"   = file("${path.module}/../../fiap-14soat-tc-fase5-observability/grafana/dashboards/07-infrastructure.json")
   }
 
   depends_on = [kubernetes_namespace_v1.fiapx]
