@@ -78,6 +78,11 @@ resource "kubernetes_secret_v1" "postgres_secret" {
     POSTGRES_USER     = "postgres"
     POSTGRES_PASSWORD = var.postgres_password
     POSTGRES_DB       = each.value.db_name
+
+    # Chaves no formato Spring Boot para consumo direto pelos microservices
+    SPRING_DATASOURCE_URL      = "jdbc:postgresql://${each.value.service_name}:5432/${each.value.db_name}"
+    SPRING_DATASOURCE_USERNAME = "postgres"
+    SPRING_DATASOURCE_PASSWORD = var.postgres_password
   }
 
   type = "Opaque"
