@@ -36,6 +36,12 @@ resource "kubernetes_ingress_v1" "fiapx" {
     annotations = {
       "nginx.ingress.kubernetes.io/rewrite-target" = "/$2"
       "nginx.ingress.kubernetes.io/use-regex"      = "true"
+      # Permite uploads de video ate 500MB (mesmo limite configurado no
+      # video-upload-service via MAX_UPLOAD_SIZE). Sem isso o nginx retorna
+      # 413 Request Entity Too Large com o valor padrao (~1MB).
+      "nginx.ingress.kubernetes.io/proxy-body-size"    = "500m"
+      "nginx.ingress.kubernetes.io/proxy-read-timeout" = "300"
+      "nginx.ingress.kubernetes.io/proxy-send-timeout" = "300"
     }
   }
 
