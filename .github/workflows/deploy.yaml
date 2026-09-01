@@ -23,6 +23,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Mantém o terraform.tfstate entre execuções — sem isso o git clean apaga
+          # o arquivo (gitignored) e o Terraform perde o estado do cluster.
+          clean: false
 
       # Clona o repo de observabilidade no mesmo nível que o repo IAC para que
       # os file() em observability.tf resolvam corretamente (../../fiap-14soat-tc-fase5-observability).
@@ -54,6 +58,29 @@ jobs:
 
       - name: Terraform Init
         run: terraform init -input=false
+
+      - name: Importar recursos já existentes no cluster
+        # Importa recursos que podem existir no cluster mas não no tfstate atual.
+        # Isso ocorre quando o estado foi perdido (primeira execução ou limpeza de workspace).
+        # O check via 'terraform state list' evita erro de double-import.
+        run: |
+          $inState = terraform state list 2>$null
+          if ($inState -notcontains "kubernetes_namespace_v1.fiapx") {
+            Write-Host "[INFO] Importando namespace fiapx..."
+            terraform import kubernetes_namespace_v1.fiapx fiapx
+          } else {
+            Write-Host "[INFO] kubernetes_namespace_v1.fiapx ja esta no estado."
+          }
+          if ($inState -notcontains "kubernetes_persistent_volume_v1.video_storage") {
+            Write-Host "[INFO] Importando PersistentVolume fiapx-video-storage..."
+            terraform import kubernetes_persistent_volume_v1.video_storage fiapx-video-storage
+          } else {
+            Write-Host "[INFO] kubernetes_persistent_volume_v1.video_storage ja esta no estado."
+          }
+        env:
+          TF_VAR_jwt_secret: ${{ secrets.JWT_SECRET }}
+          TF_VAR_rabbitmq_password: ${{ secrets.RABBITMQ_PASSWORD }}
+          TF_VAR_postgres_password: ${{ secrets.POSTGRES_PASSWORD }}
 
       - name: Terraform Validate
         run: terraform validate
