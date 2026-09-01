@@ -25,6 +25,7 @@ resource "kubernetes_config_map_v1" "grafana_dashboards" {
   }
 
   data = {
+    "00-auth.json"             = file("${path.module}/../../fiap-14soat-tc-fase5-observability/grafana/dashboards/00-auth.json")
     "01-overview.json"         = file("${path.module}/../../fiap-14soat-tc-fase5-observability/grafana/dashboards/01-overview.json")
     "02-video-upload.json"     = file("${path.module}/../../fiap-14soat-tc-fase5-observability/grafana/dashboards/02-video-upload.json")
     "03-video-processing.json" = file("${path.module}/../../fiap-14soat-tc-fase5-observability/grafana/dashboards/03-video-processing.json")

@@ -14,87 +14,21 @@ pushgateway:
 nodeExporter:
   enabled: false
 
-# Scrape dos microserviços Spring Boot via /actuator/prometheus.
-# Os targets são declarados como localhost:PORT (exibido na UI do Prometheus).
-# O relabeling salva 'instance' como localhost:PORT antes de reescrever
-# __address__ para host.docker.internal:PORT (necessário dentro do cluster K8s).
-extraScrapeConfigs: |
-  - job_name: 'video-upload-service'
-    metrics_path: '/actuator/prometheus'
-    scrape_interval: 15s
-    static_configs:
-      - targets: ['localhost:8083']
-    relabel_configs:
-      - source_labels: [__address__]
-        target_label: instance
-      - source_labels: [__address__]
-        regex: 'localhost:(\d+)'
-        target_label: __address__
-        replacement: 'host.docker.internal:${1}'
-      - target_label: service
-        replacement: 'video-upload'
-
-  - job_name: 'video-processing-service'
-    metrics_path: '/actuator/prometheus'
-    scrape_interval: 15s
-    static_configs:
-      - targets: ['localhost:8086']
-    relabel_configs:
-      - source_labels: [__address__]
-        target_label: instance
-      - source_labels: [__address__]
-        regex: 'localhost:(\d+)'
-        target_label: __address__
-        replacement: 'host.docker.internal:${1}'
-      - target_label: service
-        replacement: 'video-processing'
-
-  - job_name: 'video-status-service'
-    metrics_path: '/actuator/prometheus'
-    scrape_interval: 15s
-    static_configs:
-      - targets: ['localhost:8084']
-    relabel_configs:
-      - source_labels: [__address__]
-        target_label: instance
-      - source_labels: [__address__]
-        regex: 'localhost:(\d+)'
-        target_label: __address__
-        replacement: 'host.docker.internal:${1}'
-      - target_label: service
-        replacement: 'video-status'
-
-  - job_name: 'video-download-service'
-    metrics_path: '/actuator/prometheus'
-    scrape_interval: 15s
-    static_configs:
-      - targets: ['localhost:8085']
-    relabel_configs:
-      - source_labels: [__address__]
-        target_label: instance
-      - source_labels: [__address__]
-        regex: 'localhost:(\d+)'
-        target_label: __address__
-        replacement: 'host.docker.internal:${1}'
-      - target_label: service
-        replacement: 'video-download'
-
-  - job_name: 'notification-service'
-    metrics_path: '/actuator/prometheus'
-    scrape_interval: 15s
-    static_configs:
-      - targets: ['localhost:8087']
-    relabel_configs:
-      - source_labels: [__address__]
-        target_label: instance
-      - source_labels: [__address__]
-        regex: 'localhost:(\d+)'
-        target_label: __address__
-        replacement: 'host.docker.internal:${1}'
-      - target_label: service
-        replacement: 'notification'
+# OBS: os microservicos Spring Boot NAO precisam de extraScrapeConfigs aqui.
+# Dentro do cluster K8s real, o job embutido "kubernetes-pods" (auto-discovery
+# do proprio chart do Prometheus) ja descobre e faz scrape de todos os pods
+# que tenham as annotations "prometheus.io/scrape: true" (presentes em cada
+# deployment.yaml dos microservicos), atribuindo o label "app" a partir do
+# label "app" do pod (ex.: auth-api, video-upload-api, video-processing-api,
+# video-status-api, video-download-api, notification-api).
+# Um extraScrapeConfigs estatico apontando para "host.docker.internal" (usado
+# no modo Docker Compose) NUNCA resolve dentro da rede do cluster K8s, entao
+# esses jobs ficavam permanentemente DOWN. Os dashboards do Grafana usam o
+# label "app" (nao "job") para funcionar em ambos os modos.
 
 # Regras de alerta equivalentes às do repositório observability.
+# Usam o label "app" (convencao "<nome>-api") para cobrir tanto os servicos
+# ja implantados quanto os futuros, sem precisar listar cada job manualmente.
 serverFiles:
   alerting_rules.yml:
     groups:
@@ -102,21 +36,21 @@ serverFiles:
         interval: 30s
         rules:
           - alert: ServiceDown
-            expr: up{job=~"video-.*-service|notification-service"} == 0
+            expr: up{app=~".*-api"} == 0
             for: 1m
             labels:
               severity: critical
             annotations:
-              summary: "Servico {{ $labels.job }} esta fora do ar"
-              description: "O servico {{ $labels.job }} nao responde ha mais de 1 minuto."
+              summary: "Servico {{ $labels.app }} esta fora do ar"
+              description: "O servico {{ $labels.app }} nao responde ha mais de 1 minuto."
 
           - alert: ServiceRestarting
-            expr: changes(process_start_time_seconds{job=~"video-.*-service|notification-service"}[10m]) > 2
+            expr: changes(process_start_time_seconds{app=~".*-api"}[10m]) > 2
             for: 0m
             labels:
               severity: warning
             annotations:
-              summary: "Servico {{ $labels.job }} reiniciou multiplas vezes"
+              summary: "Servico {{ $labels.app }} reiniciou multiplas vezes"
               description: "O servico reiniciou mais de 2 vezes nos ultimos 10 minutos."
 
       - name: http_performance
@@ -132,8 +66,8 @@ serverFiles:
             labels:
               severity: warning
             annotations:
-              summary: "Alta taxa de erros 5xx em {{ $labels.job }}"
-              description: "Taxa de erros HTTP 5xx acima de 5% no servico {{ $labels.job }}."
+              summary: "Alta taxa de erros 5xx em {{ $labels.app }}"
+              description: "Taxa de erros HTTP 5xx acima de 5% no servico {{ $labels.app }}."
 
           - alert: HighLatencyP95
             expr: |
@@ -144,8 +78,8 @@ serverFiles:
             labels:
               severity: warning
             annotations:
-              summary: "Latencia p95 alta em {{ $labels.job }}"
-              description: "Latencia p95 acima de 2 segundos no servico {{ $labels.job }}."
+              summary: "Latencia p95 alta em {{ $labels.app }}"
+              description: "Latencia p95 acima de 2 segundos no servico {{ $labels.app }}."
 
           - alert: HighJvmHeapUsage
             expr: |
@@ -154,15 +88,15 @@ serverFiles:
             labels:
               severity: warning
             annotations:
-              summary: "Uso de heap JVM alto em {{ $labels.job }}"
-              description: "Heap JVM acima de 85% no servico {{ $labels.job }}."
+              summary: "Uso de heap JVM alto em {{ $labels.app }}"
+              description: "Heap JVM acima de 85% no servico {{ $labels.app }}."
 
       - name: video_processing
         rules:
           - alert: VideoProcessingErrors
             expr: |
               rate(http_server_requests_seconds_count{
-                job="video-processing-service", status=~"5.."
+                app="video-processing-api", status=~"5.."
               }[10m]) > 0.1
             for: 5m
             labels:
@@ -174,7 +108,7 @@ serverFiles:
           - alert: NotificationEmailFailures
             expr: |
               rate(http_server_requests_seconds_count{
-                job="notification-service", status=~"5.."
+                app="notification-api", status=~"5.."
               }[10m]) > 0.05
             for: 5m
             labels:
@@ -192,5 +126,5 @@ serverFiles:
             labels:
               severity: warning
             annotations:
-              summary: "Pausas de GC elevadas em {{ $labels.job }}"
-              description: "O GC esta pausando a JVM por mais de 500ms no servico {{ $labels.job }}."
+              summary: "Pausas de GC elevadas em {{ $labels.app }}"
+              description: "O GC esta pausando a JVM por mais de 500ms no servico {{ $labels.app }}."
