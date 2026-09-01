@@ -18,14 +18,21 @@ jobs:
 
       # Clona o repo de observabilidade no mesmo nível que o repo IAC para que
       # os file() em observability.tf resolvam corretamente (../../fiap-14soat-tc-fase5-observability).
+      # O runner self-hosted é persistente: se o diretório já existir de uma
+      # execução anterior, é preciso atualizá-lo (pull) em vez de pular o
+      # clone, senão arquivos novos/alterados no repo de observability nunca
+      # chegam ao runner.
       - name: Checkout observability dashboards
         working-directory: ${{ github.workspace }}
         run: |
           OBSERVABILITY_DIR="$(dirname "$GITHUB_WORKSPACE")/fiap-14soat-tc-fase5-observability"
+          REMOTE="https://x-access-token:${{ secrets.GH_PAT }}@github.com/jonasfschuh/fiap-14soat-tc-fase5-observability"
           if [ ! -d "$OBSERVABILITY_DIR" ]; then
-            git clone --depth 1 \
-              "https://x-access-token:${{ secrets.GH_PAT }}@github.com/jonasfschuh/fiap-14soat-tc-fase5-observability" \
-              "$OBSERVABILITY_DIR"
+            git clone --depth 1 "$REMOTE" "$OBSERVABILITY_DIR"
+          else
+            git -C "$OBSERVABILITY_DIR" fetch --depth 1 origin main
+            git -C "$OBSERVABILITY_DIR" reset --hard origin/main
+            git -C "$OBSERVABILITY_DIR" clean -fd
           fi
 
       - run: terraform init -backend=false -input=false

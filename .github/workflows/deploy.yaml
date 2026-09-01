@@ -30,14 +30,23 @@ jobs:
 
       # Clona o repo de observabilidade no mesmo nível que o repo IAC para que
       # os file() em observability.tf resolvam corretamente (../../fiap-14soat-tc-fase5-observability).
+      # O runner self-hosted é persistente: se o diretório já existir de uma
+      # execução anterior, é preciso atualizá-lo (pull) em vez de pular o
+      # clone, senão arquivos novos/alterados no repo de observability nunca
+      # chegam ao runner.
       - name: Checkout observability dashboards
         working-directory: ${{ github.workspace }}
         run: |
           $target = Join-Path (Split-Path $env:GITHUB_WORKSPACE -Parent) "fiap-14soat-tc-fase5-observability"
+          $remote = "https://x-access-token:${{ secrets.GH_PAT }}@github.com/jonasfschuh/fiap-14soat-tc-fase5-observability"
           if (-not (Test-Path $target)) {
-            git clone --depth 1 `
-              "https://x-access-token:${{ secrets.GH_PAT }}@github.com/jonasfschuh/fiap-14soat-tc-fase5-observability" `
-              $target
+            git clone --depth 1 $remote $target
+          } else {
+            Push-Location $target
+            git fetch --depth 1 origin main
+            git reset --hard origin/main
+            git clean -fd
+            Pop-Location
           }
 
       - name: Configurar PATH do Helm
