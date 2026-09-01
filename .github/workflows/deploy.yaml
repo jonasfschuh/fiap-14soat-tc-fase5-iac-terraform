@@ -60,74 +60,73 @@ jobs:
         run: terraform init -input=false
 
       - name: Importar recursos já existentes no cluster
-        # Bootstrap: importa todos os recursos que já existem no cluster mas não
-        # estão no estado Terraform (ocorre na primeira execução ou após perda do tfstate).
-        # Na segunda execução em diante, o clean:false preserva o estado e todos
-        # os TryImport são ignorados (SKIP).
+        # Bootstrap: importa todos os recursos de infraestrutura que já existem no
+        # cluster mas não estão no estado Terraform.
+        # Usa shell bash para garantir quoting correto dos endereços for_each
+        # (ex: kubernetes_service_v1.postgres["auth"]) — o PowerShell no Windows
+        # strips as aspas internas ao passar para o processo filho.
+        shell: bash
+        working-directory: infra
         run: |
-          $raw = terraform state list 2>$null
-          $stateList = if ($null -ne $raw -and $raw.Length -gt 0) { @($raw) } else { @() }
-          Write-Host "[INFO] $($stateList.Count) recurso(s) no estado atual."
+          NS="fiapx"
+          STATE=$(terraform state list 2>/dev/null || true)
 
-          function TryImport {
-            param([string]$addr, [string]$id)
-            if ($stateList -contains $addr) {
-              Write-Host "[SKIP]   $addr"
-              return
-            }
-            Write-Host "[IMPORT] $addr <- $id"
-            terraform import $addr $id
-            if ($LASTEXITCODE -ne 0) {
-              Write-Warning "[AVISO]  $addr : falhou (pode nao existir ainda, sera criado no apply)"
-            }
+          try_import() {
+            local addr="$1"
+            local id="$2"
+            if echo "$STATE" | grep -qxF "$addr"; then
+              echo "[SKIP]   $addr"
+            else
+              echo "[IMPORT] $addr <- $id"
+              terraform import "$addr" "$id" \
+                || echo "[AVISO]  $addr : falhou (sera criado no apply)"
+            fi
           }
 
-          $ns = "fiapx"
+          # ── Namespace e Storage ──────────────────────────────────────────────
+          try_import "kubernetes_namespace_v1.fiapx"                        "$NS"
+          try_import "kubernetes_persistent_volume_v1.video_storage"        "fiapx-video-storage"
+          try_import "kubernetes_persistent_volume_claim_v1.video_storage"  "$NS/fiapx-video-pvc"
 
-          # ── Namespace e Storage ────────────────────────────────────────────────
-          TryImport "kubernetes_namespace_v1.fiapx"                        "$ns"
-          TryImport "kubernetes_persistent_volume_v1.video_storage"        "fiapx-video-storage"
-          TryImport "kubernetes_persistent_volume_claim_v1.video_storage"  "$ns/fiapx-video-pvc"
+          # ── ConfigMaps ───────────────────────────────────────────────────────
+          try_import "kubernetes_config_map_v1.mail_config"             "$NS/mail-config"
+          try_import "kubernetes_config_map_v1.rabbitmq_config"         "$NS/rabbitmq-config"
+          try_import "kubernetes_config_map_v1.rabbitmq_server_config"  "$NS/rabbitmq-server-config"
+          try_import "kubernetes_config_map_v1.grafana_dashboards"      "$NS/grafana-dashboards"
 
-          # ── ConfigMaps ─────────────────────────────────────────────────────────
-          TryImport "kubernetes_config_map_v1.mail_config"             "$ns/mail-config"
-          TryImport "kubernetes_config_map_v1.rabbitmq_config"         "$ns/rabbitmq-config"
-          TryImport "kubernetes_config_map_v1.rabbitmq_server_config"  "$ns/rabbitmq-server-config"
-          TryImport "kubernetes_config_map_v1.grafana_dashboards"      "$ns/grafana-dashboards"
+          # ── Secrets ──────────────────────────────────────────────────────────
+          try_import "kubernetes_secret_v1.jwt_secret"           "$NS/jwt-secret"
+          try_import "kubernetes_secret_v1.rabbitmq_secret"      "$NS/rabbitmq-secret"
+          try_import "kubernetes_secret_v1.rabbitmq_definitions" "$NS/rabbitmq-definitions"
+          for k in auth upload processing status; do
+            try_import "kubernetes_secret_v1.postgres_secret[\"$k\"]" "$NS/postgres-$k-secret"
+          done
 
-          # ── Secrets ────────────────────────────────────────────────────────────
-          TryImport "kubernetes_secret_v1.jwt_secret"           "$ns/jwt-secret"
-          TryImport "kubernetes_secret_v1.rabbitmq_secret"      "$ns/rabbitmq-secret"
-          TryImport "kubernetes_secret_v1.rabbitmq_definitions" "$ns/rabbitmq-definitions"
-          foreach ($k in @("auth", "upload", "processing", "status")) {
-            TryImport "kubernetes_secret_v1.postgres_secret[`"$k`"]" "$ns/postgres-$k-secret"
-          }
+          # ── RabbitMQ ─────────────────────────────────────────────────────────
+          try_import "kubernetes_stateful_set_v1.rabbitmq"       "$NS/rabbitmq"
+          try_import "kubernetes_service_v1.rabbitmq_amqp"       "$NS/rabbitmq"
+          try_import "kubernetes_service_v1.rabbitmq_management" "$NS/rabbitmq-management"
+          try_import "kubernetes_service_v1.rabbitmq_amqp_lb"    "$NS/rabbitmq-amqp-lb"
 
-          # ── RabbitMQ ───────────────────────────────────────────────────────────
-          TryImport "kubernetes_stateful_set_v1.rabbitmq"       "$ns/rabbitmq"
-          TryImport "kubernetes_service_v1.rabbitmq_amqp"       "$ns/rabbitmq"
-          TryImport "kubernetes_service_v1.rabbitmq_management" "$ns/rabbitmq-management"
-          TryImport "kubernetes_service_v1.rabbitmq_amqp_lb"    "$ns/rabbitmq-amqp-lb"
+          # ── PostgreSQL (for_each: auth, upload, processing, status) ──────────
+          for k in auth upload processing status; do
+            try_import "kubernetes_service_v1.postgres[\"$k\"]"      "$NS/postgres-$k"
+            try_import "kubernetes_stateful_set_v1.postgres[\"$k\"]" "$NS/postgres-$k"
+            try_import "kubernetes_service_v1.postgres_lb[\"$k\"]"   "$NS/postgres-$k-lb"
+          done
 
-          # ── PostgreSQL (for_each: auth, upload, processing, status) ────────────
-          foreach ($k in @("auth", "upload", "processing", "status")) {
-            TryImport "kubernetes_service_v1.postgres[`"$k`"]"      "$ns/postgres-$k"
-            TryImport "kubernetes_stateful_set_v1.postgres[`"$k`"]" "$ns/postgres-$k"
-            TryImport "kubernetes_service_v1.postgres_lb[`"$k`"]"   "$ns/postgres-$k-lb"
-          }
+          # ── MailHog ──────────────────────────────────────────────────────────
+          try_import "kubernetes_deployment_v1.mailhog" "$NS/mailhog"
+          try_import "kubernetes_service_v1.mailhog"    "$NS/mailhog"
+          try_import "kubernetes_service_v1.mailhog_lb" "$NS/mailhog-lb"
 
-          # ── MailHog ────────────────────────────────────────────────────────────
-          TryImport "kubernetes_deployment_v1.mailhog" "$ns/mailhog"
-          TryImport "kubernetes_service_v1.mailhog"    "$ns/mailhog"
-          TryImport "kubernetes_service_v1.mailhog_lb" "$ns/mailhog-lb"
+          # ── Helm releases ────────────────────────────────────────────────────
+          try_import "helm_release.ingress_nginx" "$NS/ingress-nginx"
+          try_import "helm_release.prometheus"    "$NS/prometheus"
+          try_import "helm_release.grafana"       "$NS/grafana"
 
-          # ── Helm releases ──────────────────────────────────────────────────────
-          TryImport "helm_release.ingress_nginx" "$ns/ingress-nginx"
-          TryImport "helm_release.prometheus"    "$ns/prometheus"
-          TryImport "helm_release.grafana"       "$ns/grafana"
-
-          # ── Ingress ────────────────────────────────────────────────────────────
-          TryImport "kubernetes_ingress_v1.fiapx" "$ns/fiapx-ingress"
+          # ── Ingress ──────────────────────────────────────────────────────────
+          try_import "kubernetes_ingress_v1.fiapx" "$NS/fiapx-ingress"
         env:
           TF_VAR_jwt_secret: ${{ secrets.JWT_SECRET }}
           TF_VAR_rabbitmq_password: ${{ secrets.RABBITMQ_PASSWORD }}
