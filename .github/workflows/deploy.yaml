@@ -118,6 +118,7 @@ jobs:
           Invoke-TerraformImport "kubernetes_secret_v1.jwt_secret"           "$ns/jwt-secret"
           Invoke-TerraformImport "kubernetes_secret_v1.rabbitmq_secret"      "$ns/rabbitmq-secret"
           Invoke-TerraformImport "kubernetes_secret_v1.rabbitmq_definitions" "$ns/rabbitmq-definitions"
+          Invoke-TerraformImport "kubernetes_secret_v1.newrelic_secret"      "$ns/newrelic-secret"
           foreach ($k in @("auth", "upload", "processing", "status")) {
             Invoke-TerraformImport "kubernetes_secret_v1.postgres_secret[`"$k`"]" "$ns/postgres-$k-secret"
           }
@@ -151,6 +152,7 @@ jobs:
           TF_VAR_jwt_secret: ${{ secrets.JWT_SECRET }}
           TF_VAR_rabbitmq_password: ${{ secrets.RABBITMQ_PASSWORD }}
           TF_VAR_postgres_password: ${{ secrets.POSTGRES_PASSWORD }}
+          TF_VAR_new_relic_license_key: ${{ secrets.NEW_RELIC_LICENSE_KEY }}
 
       - name: Terraform Validate
         run: terraform validate
@@ -161,6 +163,7 @@ jobs:
           TF_VAR_jwt_secret: ${{ secrets.JWT_SECRET }}
           TF_VAR_rabbitmq_password: ${{ secrets.RABBITMQ_PASSWORD }}
           TF_VAR_postgres_password: ${{ secrets.POSTGRES_PASSWORD }}
+          TF_VAR_new_relic_license_key: ${{ secrets.NEW_RELIC_LICENSE_KEY }}
 
       - name: Terraform Apply
         run: terraform apply -input=false tfplan
@@ -168,6 +171,7 @@ jobs:
           TF_VAR_jwt_secret: ${{ secrets.JWT_SECRET }}
           TF_VAR_rabbitmq_password: ${{ secrets.RABBITMQ_PASSWORD }}
           TF_VAR_postgres_password: ${{ secrets.POSTGRES_PASSWORD }}
+          TF_VAR_new_relic_license_key: ${{ secrets.NEW_RELIC_LICENSE_KEY }}
 
       - name: Exibir outputs
         run: terraform output

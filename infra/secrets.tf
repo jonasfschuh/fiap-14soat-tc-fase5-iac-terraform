@@ -59,6 +59,23 @@ resource "kubernetes_secret_v1" "rabbitmq_secret" {
   depends_on = [kubernetes_namespace_v1.fiapx]
 }
 
+# Publica a license key do New Relic consumida pelo Java Agent de todos os microservices.
+resource "kubernetes_secret_v1" "newrelic_secret" {
+  metadata {
+    name      = "newrelic-secret"
+    namespace = kubernetes_namespace_v1.fiapx.metadata[0].name
+    labels    = local.common_labels
+  }
+
+  data = {
+    NEW_RELIC_LICENSE_KEY = var.new_relic_license_key
+  }
+
+  type = "Opaque"
+
+  depends_on = [kubernetes_namespace_v1.fiapx]
+}
+
 # Publica as credenciais dos bancos PostgreSQL por microservice.
 resource "kubernetes_secret_v1" "postgres_secret" {
   for_each = local.postgres_databases

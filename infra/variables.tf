@@ -43,6 +43,13 @@ variable "postgres_password" {
   default     = "postgres"
 }
 
+variable "new_relic_license_key" {
+  description = "License key do New Relic usada pelo agente Java de todos os microservices."
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
 variable "video_storage_host_path" {
   description = "Diretório local montado no nó do Kubernetes para armazenar vídeos."
   type        = string
