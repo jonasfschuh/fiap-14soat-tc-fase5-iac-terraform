@@ -1,99 +1,136 @@
-# ADR-003 — NLB Interno com VPC Link como Padrão de Comunicação entre API Gateway e EKS
+# ADR-003 — NGINX Ingress Controller como Único Ponto de Entrada do Cluster Kubernetes Local
 
 | Campo        | Valor                                                                   |
 |--------------|-------------------------------------------------------------------------|
 | **ADR**      | 003                                                                     |
-| **Título**   | NLB interno + VPC Link como único caminho de entrada para o cluster EKS |
+| **Título**   | Ingress NGINX (Helm) como porta de entrada HTTP do cluster Kubernetes local |
 | **Repositório** | fiap-14soat-tc-fase5-iac-terraform                                     |
-| **Status**   | Aceito                                                                  |
-| **Data**     | 2026-04-20 (criado) · 2026-07-17 (revisado para Fase 5)                 |
-| **Decisores**| Time FIAP 14SOAT Fase 5 — RaceForce                                     |
+| **Status**   | Aceito — **revisado em 2026-09-10** (substitui a versão anterior baseada em NLB + VPC Link da AWS) |
+| **Data**     | 2026-04-20 (criado) · 2026-09-10 (revisado — remoção de toda dependência AWS) |
+| **Decisores**| Time FIAP 14SOAT Fase 5                                                 |
+
+---
+
+## ⚠️ Nota sobre a revisão
+
+A versão original deste ADR descrevia um **NLB interno + VPC Link conectado a um AWS API Gateway**, dando acesso a um cluster **EKS**. Essa arquitetura **não existe mais no projeto**: não há conta AWS, VPC, API Gateway, NLB ou EKS envolvidos. O `provider.tf` deste repositório usa exclusivamente o **kubeconfig local, apontando para o contexto do Kubernetes do Docker Desktop** (`config_path = "~/.kube/config"`). Esta revisão substitui a decisão por aquela efetivamente implementada em `infra/ingress.tf`.
 
 ---
 
 ## Contexto
 
-Após provisionar o cluster EKS, a equipe precisou definir como o **API Gateway (externo)** alcançaria os pods internos do cluster. As opções avaliadas foram:
+Após provisionar o **namespace `fiapx` em um cluster Kubernetes local (Docker Desktop)**, a equipe precisou definir como as requisições HTTP externas (do navegador/Postman/testes locais) chegariam aos Services dos microsserviços (`auth`, `video-upload`, `video-processing`, `video-status`, `video-download`, `notification`). As opções avaliadas foram:
 
-1. **LoadBalancer Service** público no Kubernetes (cria NLB público automaticamente);
-2. **NLB interno + VPC Link** (NLB sem IP público, acessado apenas via VPC Link);
-3. **Ingress Controller** (ex: AWS Load Balancer Controller + ALB Ingress);
-4. **NodePort direto** com Security Group abrindo a porta 30000 na internet.
+1. **NGINX Ingress Controller** (Helm chart oficial `ingress-nginx`), roteando por path para cada Service;
+2. `NodePort` direto por serviço, exigindo memorizar uma porta distinta por microsserviço;
+3. `LoadBalancer` Service individual por microsserviço (sem roteamento por path, um IP/porta externo por serviço).
 
 ---
 
 ## Decisão
 
-**Provisionar um NLB com `internal = true` via Terraform**, conectado ao API Gateway por meio de um **VPC Link privado**. O Kubernetes Service permanece como `NodePort`, e o NLB aponta para os nodes nas portas 30000 (app) / 8080 (Adminer) / 8025 (MailHog).
+**Instalar o `ingress-nginx` via Helm (`helm_release.ingress_nginx`)**, com `service.type = LoadBalancer` (resolvido localmente pelo Docker Desktop), e definir um único recurso `kubernetes_ingress_v1.fiapx` com roteamento por prefixo de path para cada microsserviço:
+
+| Path | Service | Porta |
+|---|---|---|
+| `/auth` | `auth-service` | 8090 |
+| `/video-upload` | `video-upload-service` | 8083 |
+| `/processing` | `video-processing-service` | 8086 |
+| `/status` | `video-status-service` | 8084 |
+| `/download` | `video-download-service` | 8085 |
+| `/notify` | `notification-service` | 8087 |
+
+O Ingress usa `nginx.ingress.kubernetes.io/rewrite-target` + `use-regex` para reescrever o path antes de encaminhar ao Service, e configura `proxy-body-size: 500m` (uploads de vídeo) e timeouts de 300s (`proxy-read-timeout`/`proxy-send-timeout`) para suportar arquivos grandes.
 
 ---
 
 ## Justificativa
 
-| Critério | NLB público | NLB interno + VPC Link (escolhido) | Ingress ALB | NodePort público |
-|----------|-------------|-------------------------------------|-------------|-----------------|
-| Segurança | Exposto na internet | Não exposto | Exposto via ALB | Altamente exposto |
-| Custo | NLB = ~$16/mês | Idem (mas sem IP público) | ALB = ~$20/mês + LCU | Sem custo adicional |
-| Controle de acesso | Security Group | Security Group + VPC Link privado | Ingress rules | Security Group |
-| Compatibilidade com API Gateway HTTP v2 | Sim (via VPC Link) | **Sim — path recomendado pela AWS** | Não nativo | Não recomendado |
-| Gestão no Terraform | `aws_lb` | `aws_lb` + `aws_apigatewayv2_vpc_link` | `aws_lb` + controller | Sem recurso |
+| Critério | NGINX Ingress (escolhido) | NodePort direto | LoadBalancer por serviço |
+|----------|----------------------------|------------------|---------------------------|
+| Ponto único de entrada | Sim — 1 IP/porta para todos os serviços | Não — 1 porta por serviço | Não — 1 IP por serviço |
+| Roteamento por path | Sim (`/auth`, `/status`, etc.) | Não | Não |
+| Configuração de limites (upload, timeout) | Centralizada em anotações do Ingress | Por serviço, sem padronização | Por serviço, sem padronização |
+| Custo/complexidade no Docker Desktop | Baixa — Helm chart padrão da comunidade | Baixa, mas sem organização | Múltiplos LoadBalancers locais (`localhost` só resolve 1 por vez de forma simples) |
+| Alinhamento com práticas de mercado | Sim — Ingress é o padrão de-facto em Kubernetes | Não recomendado para produção | Válido, mas sem roteamento HTTP inteligente |
 
-O **NLB interno + VPC Link** foi escolhido porque:
-- O API Gateway HTTP v2 usa VPC Link para acessar recursos privados — é o **padrão oficial AWS**;
-- O NLB não fica exposto na internet, reduzindo superfície de ataque;
-- Toda requisição externa **obrigatoriamente passa pelo API Gateway** (com Lambda Authorizer);
-- Terraform gerencia o VPC Link como recurso de primeira classe (`aws_apigatewayv2_vpc_link`).
+O **NGINX Ingress** foi escolhido porque:
+- É o controlador de Ingress mais adotado no ecossistema Kubernetes, com Helm chart oficial mantido pela comunidade;
+- Permite expor todos os microsserviços atrás de um único endereço local, roteando por prefixo de path;
+- Suporta anotações para ajustar limites de payload (essencial para upload de vídeos) sem precisar de configuração por serviço;
+- Não depende de nenhum recurso específico de nuvem — funciona da mesma forma em qualquer cluster Kubernetes (Docker Desktop, kind, minikube, EKS, etc.), o que facilita portar a solução no futuro caso a equipe volte a ter acesso a uma conta AWS.
 
 ---
 
 ## Consequências
 
 ### Positivas
-- **Zero exposição pública do EKS** — o único endpoint externo é o API Gateway;
-- Arquitetura alinhada com boas práticas AWS Well-Architected Framework (pilar Segurança);
-- NLB opera na camada 4 (TCP), adicionando mínima latência;
-- VPC Link estabelece conexão persistente entre Gateway e VPC, sem overhead de HTTPS adicional.
+- **Zero dependência de AWS** — toda a infraestrutura roda localmente via Docker Desktop + Terraform;
+- Um único ponto de entrada HTTP simplifica testes manuais e a apresentação da solução;
+- Configuração de upload de arquivos grandes (500MB) centralizada em anotações do Ingress;
+- Arquitetura portável — o mesmo Ingress funcionaria em um cluster gerenciado na nuvem, se necessário no futuro.
 
 ### Negativas / Riscos
-- VPC Link pode levar 5-10 minutos para ficar disponível após `terraform apply`;
-- Se o NLB não encontrar nodes com a porta aberta (NodePort), retorna 502 Bad Gateway no API Gateway — debug requer verificação do Target Group do NLB;
-- Adminer e MailHog usam LoadBalancer Services separados (exposição pública necessária para acesso da equipe no AWS Academy).
+- Sem WAF, autenticação de borda ou rate limiting adicional — a proteção depende inteiramente da aplicação (`auth`-service com JWT, ver ADR-001 do repositório `auth`);
+- `service.type = LoadBalancer` no Docker Desktop depende do balanceador de carga interno do Docker Desktop (não é um LoadBalancer gerenciado de nuvem) — não reflete o comportamento de um ambiente de produção real;
+- Se o Ingress Controller cair, todos os microsserviços ficam inacessíveis externamente (ponto único de falha para tráfego HTTP externo).
 
 ---
 
 ## Alternativas Consideradas
 
-### Ingress Controller (AWS Load Balancer Controller + ALB)
-- Mais funcional (path-based routing, SSL termination);
-- Mais complexo de instalar no AWS Academy (requer IRSA, OpenID Connect no EKS);
-- Custo adicional (ALB + LCU);
-- Não necessário para o escopo atual.
+### NodePort direto por serviço
+- Simples de configurar, mas exige lembrar uma porta por serviço e não oferece roteamento por path;
+- Sem suporte nativo a limites de payload/timeout centralizados.
 
-### NodePort público (Security Group aberto)
-- Simples, mas inseguro;
-- Bypassa completamente o API Gateway e o Lambda Authorizer;
-- Inaceitável para o requisito de autenticação.
+### LoadBalancer Service individual por microsserviço
+- Cada serviço ganharia seu próprio IP/porta local — mais difícil de organizar e apresentar;
+- Sem roteamento HTTP inteligente (path-based), apenas encaminhamento de camada 4.
+
+### AWS API Gateway + NLB + VPC Link (arquitetura original, revogada)
+- Adequada apenas com conta AWS ativa (cenário de uma fase anterior do curso);
+- Sem essa infraestrutura disponível, foi substituída pelo Ingress NGINX local.
 
 ---
 
 ## Notas de Implementação
 
 ```hcl
-# nlb.tf
-resource "aws_lb" "eks_nlb" {
-  name               = "${var.project_identifier}-nlb"
-  internal           = true   # NÃO público
-  load_balancer_type = "network"
-  subnets            = aws_subnet.publicas[*].id
+# infra/ingress.tf
+resource "helm_release" "ingress_nginx" {
+  name       = "ingress-nginx"
+  repository = "https://kubernetes.github.io/ingress-nginx"
+  chart      = "ingress-nginx"
+  namespace  = kubernetes_namespace_v1.fiapx.metadata[0].name
+
+  values = [yamlencode({
+    controller = {
+      ingressClassResource = { name = "nginx", enabled = true, default = true }
+      service              = { type = "LoadBalancer" }
+    }
+  })]
 }
 
-# api-gateway.tf (auth-lambda)
-resource "aws_apigatewayv2_vpc_link" "eks" {
-  name               = "${var.project_identifier}-vpc-link"
-  security_group_ids = [aws_security_group.vpc_link_sg.id]
-  subnet_ids         = data.terraform_remote_state.infra.outputs.subnet_publica_ids
+resource "kubernetes_ingress_v1" "fiapx" {
+  metadata {
+    annotations = {
+      "nginx.ingress.kubernetes.io/rewrite-target"     = "/$2"
+      "nginx.ingress.kubernetes.io/use-regex"          = "true"
+      "nginx.ingress.kubernetes.io/proxy-body-size"    = "500m"
+      "nginx.ingress.kubernetes.io/proxy-read-timeout" = "300"
+      "nginx.ingress.kubernetes.io/proxy-send-timeout" = "300"
+    }
+  }
+  spec {
+    ingress_class_name = "nginx"
+    rule {
+      http {
+        path { path = "/auth(/|$)(.*)"; backend { service { name = "auth-service", port { number = 8090 } } } }
+        # ... demais paths por serviço
+      }
+    }
+  }
 }
 ```
 
-**ADR relacionado:** ADR-001 (Lambda Authorizer), RFC-003 (Infra Kubernetes).
-
+**ADR relacionado:** ADR-001 (`auth` — JWT via Spring Security), ADR-004 (Banco de dados local por serviço), RFC-003 (Infraestrutura Kubernetes local), RFC-004 (Arquitetura geral e fluxo de mensageria).

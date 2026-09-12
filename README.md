@@ -25,6 +25,7 @@
 - [🚀 Provisionamento Local](#-provisionamento-local)
 - [⚙️ Variáveis de Configuração](#️-variáveis-de-configuração)
 - [🤖 CI/CD — Self-Hosted Runner](#-cicd--self-hosted-runner)
+- [📖 Documentação Técnica](#-documentação-técnica)
 - [🎬 Vídeos de Apresentação](#-vídeos-de-apresentação)
 - [🔗 Repositórios Relacionados](#-repositórios-relacionados)
 
@@ -73,6 +74,16 @@ Este repositório contém a **infraestrutura local em Terraform** para o ecossis
 ---
 
 ## 🏗️ Arquitetura
+
+![Arquitetura Geral](docs/diagrams/architecture-overview.png)
+
+### Fluxo processual (12 etapas em 4 fases)
+
+![Fluxo Processual](docs/diagrams/process-flow.png)
+
+### Topologia RabbitMQ
+
+![Topologia RabbitMQ](docs/diagrams/rabbitmq-topology.png)
 
 ### Infraestrutura provisionada
 
@@ -352,6 +363,47 @@ kubectl logs -l app=<nome-do-app> -n fiapx --tail=50
 ```
 
 > 💡 **Dica:** Para múltiplos repositórios, crie uma pasta separada para cada runner (ex: `C:\actions-runner\iac`, `C:\actions-runner\upload`) e repita o processo para cada um.
+
+---
+
+## 📖 Documentação Técnica
+
+### RFCs (Requests for Comments)
+
+| RFC | Título | Descrição |
+|-----|--------|-----------|
+| 📋 RFC-003 | [Infraestrutura Kubernetes Local](docs/RFC%20-%20Requests%20for%20Comments/RFC-003-infraestrutura-kubernetes.md) | Justificativa do provisionamento via Terraform + Kubernetes no Docker Desktop, sem AWS/EKS/VPC |
+| 📋 RFC-004 | [Arquitetura Geral e Fluxo de Mensageria](docs/RFC%20-%20Requests%20for%20Comments/RFC-004-arquitetura-geral-e-fluxo-de-mensageria.md) | Visão ponta a ponta da arquitetura e do fluxo de eventos via RabbitMQ |
+
+### ADRs (Architecture Decision Records)
+
+| ADR | Título | Descrição |
+|-----|--------|-----------|
+| 🏛️ ADR-003 | [Ingress NGINX como Ponto de Entrada Local](docs/ADR%20-%20Architecture%20Decision%20Records/ADR-003-nlb-interno-vpc-link.md) | Decisão de usar NGINX Ingress Controller ao invés de NLB/VPC Link/API Gateway |
+| 🏛️ ADR-004 | [PostgreSQL StatefulSet — Um Banco de Dados por Microsserviço](docs/ADR%20-%20Architecture%20Decision%20Records/ADR-004-PostgreSQL-StatefulSet-Um-Banco-de-Dados-por-Microsserviço.md) | Banco de dados dedicado por serviço via StatefulSet local, substitui o RDS compartilhado |
+| 🏛️ ADR-005 | [Padronização de Nomenclatura das Filas RabbitMQ](docs/ADR%20-%20Architecture%20Decision%20Records/ADR-005-padronizacao-nomenclatura-filas-rabbitmq.md) | Convenção de nomes para filas (hífen) e routing keys/exchange (ponto) |
+
+### Script de Banco de Dados
+
+| Arquivo | Descrição |
+|---------|-----------|
+| 🗄️ [`create-databases.sql`](docs/database/create-databases.sql) | Script consolidado de criação dos bancos (`auth_db`, `video_upload_db`, `video_status_db`) — documenta explicitamente a arquitetura **database-per-service**; a consolidação em um único script existe apenas para atender ao entregável exigido pelo desafio, não representa um único banco compartilhado |
+
+### Diagramas
+
+| Diagrama | Arquivo | Descrição |
+|----------|---------|-----------|
+| 🏗️ Arquitetura Geral | [`architecture-overview.png`](docs/diagrams/architecture-overview.png) ([.svg](docs/diagrams/architecture-overview.svg)) | Visão completa dos componentes: Ingress, os 6 microserviços com seus bancos dedicados, RabbitMQ, volume persistente, MailHog e observabilidade |
+| 🔄 Fluxo Processual | [`process-flow.png`](docs/diagrams/process-flow.png) ([.svg](docs/diagrams/process-flow.svg)) | As 12 etapas do fluxo, em 4 fases: autenticação, upload, processamento e entrega |
+| 🐰 Topologia RabbitMQ | [`rabbitmq-topology.png`](docs/diagrams/rabbitmq-topology.png) ([.svg](docs/diagrams/rabbitmq-topology.svg)) | Produtores, exchange `video.events`, filas, bindings por routing key, DLQs e consumidores |
+
+> 💡 A versão `.png` é de alta resolução (pronta para slides) e a `.svg` é vetorial — pode ser ampliada sem perda e aberta/editada no [diagrams.net](https://app.diagrams.net/), Figma, Inkscape ou inserida diretamente no PowerPoint.
+
+### Proposta original
+
+| Arquivo | Descrição |
+|---------|-----------|
+| 📄 [`proposta-documentacao-arquitetura-e-topicos-rabbitmq.md`](docs/proposta-documentacao-arquitetura-e-topicos-rabbitmq.md) | Proposta aprovada que originou toda a documentação acima, incluindo o achado e a correção dos ADRs/RFCs contaminados por uma base AWS de outro projeto |
 
 ---
 
